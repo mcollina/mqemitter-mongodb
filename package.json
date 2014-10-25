@@ -1,0 +1,24 @@
+{
+  "name": "y",
+  "version": "0.0.1",
+  "description": "MongoDB based MQEmitter",
+  "main": "mqemitter-mongodb.js",
+  "scripts": {
+    "test": "tape test.js | faucet"
+  },
+  "repository": {
+    "type": "git",
+    "url": "y"
+  },
+  "author": "Matteo Collina <hello@matteocollina.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tape": "^3.0.1"
+  },
+  "dependencies": {
+    "inherits": "^2.0.1",
+    "mongojs": "^0.15.1",
+    "mqemitter": "^0.2.1"
+  }
+}
