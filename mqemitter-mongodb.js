@@ -64,6 +64,10 @@ function MQEmitterMongoDB(opts) {
     eos(that._stream, start)
 
     that._stream.pipe(through.obj(function(obj, enc, cb) {
+      if (that.closed) {
+        return cb()
+      }
+
       failures = 0
       that._lastId = obj._id
       oldEmit.call(that, obj, cb)
@@ -77,17 +81,19 @@ inherits(MQEmitterMongoDB, MQEmitter)
 
 function nop() {}
 MQEmitterMongoDB.prototype.emit = function(obj, cb) {
-  // j flag waits for data to be in disk
-  // it is the only way we can guarantee the flow-control
-  // callback
-  this._collection.insert(obj, { w: 1, j: true }, cb || nop)
+  this._collection.insert(obj, { w: 1 }, cb || nop)
   return this
 }
 
 MQEmitterMongoDB.prototype.close = function(cb) {
+  if (this.closed) {
+    return
+  }
+
   if (this._stream) {
     this._stream.destroy()
     this._stream.on('error', function() {})
+    this._stream = null
   }
 
   var that = this
