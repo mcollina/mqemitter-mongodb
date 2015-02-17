@@ -1,6 +1,6 @@
 {
-  "name": "y",
-  "version": "0.0.1",
+  "name": "mqemitter-mongodb",
+  "version": "0.1.0",
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "y"
+    "url": "https://github.com/mcollina/mqemitter-mongodb.git"
   },
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
