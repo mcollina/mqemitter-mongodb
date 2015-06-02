@@ -1,17 +1,18 @@
+'use strict'
 
-var mongo     = require('mongojs')
-  , inherits  = require('inherits')
-  , MQEmitter = require('mqemitter')
-  , through   = require('through2')
-  , eos       = require('end-of-stream')
+var mongo = require('mongojs')
+var inherits = require('inherits')
+var MQEmitter = require('mqemitter')
+var through = require('through2')
+var eos = require('end-of-stream')
 
-function MQEmitterMongoDB(opts) {
+function MQEmitterMongoDB (opts) {
   if (!(this instanceof MQEmitterMongoDB)) {
     return new MQEmitterMongoDB(opts)
   }
 
   opts = opts || {}
-  opts.size = opts.size || 10 * 1024 * 1024, // 10 MB
+  opts.size = opts.size || 10 * 1024 * 1024 // 10 MB
   opts.max = opts.max || 10000 // documents
   opts.collection = opts.collection || 'pubsub'
   opts.url = opts.url || 'mongodb://127.0.0.1/mqemitter?auto_reconnect'
@@ -23,7 +24,7 @@ function MQEmitterMongoDB(opts) {
   this._db = mongo(opts.url)
   this._collection = this._db.collection(opts.collection)
 
-  this._collection.isCapped(function(err, capped) {
+  this._collection.isCapped(function (err, capped) {
     if (that.closed) { return }
     if (err) { throw err } // we just don't care, die horribly
 
@@ -43,7 +44,7 @@ function MQEmitterMongoDB(opts) {
   this._lastId = new mongo.ObjectId()
 
   var failures = 0
-  function start() {
+  function start () {
     if (that.closed) {
       return
     }
@@ -55,15 +56,15 @@ function MQEmitterMongoDB(opts) {
     that._stream = that._collection.find({
       _id: { $gt: that._lastId }
     }, {
-        tailable: true
-      , timeout: false
-      , awaitdata: true
-      , numberOfRetries: -1
+      tailable: true,
+      timeout: false,
+      awaitdata: true,
+      numberOfRetries: -1
     })
 
     eos(that._stream, start)
 
-    that._stream.pipe(through.obj(function(obj, enc, cb) {
+    that._stream.pipe(through.obj(function process (obj, enc, cb) {
       if (that.closed) {
         return cb()
       }
@@ -79,25 +80,25 @@ function MQEmitterMongoDB(opts) {
 
 inherits(MQEmitterMongoDB, MQEmitter)
 
-function nop() {}
-MQEmitterMongoDB.prototype.emit = function(obj, cb) {
+function nop () {}
+MQEmitterMongoDB.prototype.emit = function (obj, cb) {
   this._collection.insert(obj, { w: 1 }, cb || nop)
   return this
 }
 
-MQEmitterMongoDB.prototype.close = function(cb) {
+MQEmitterMongoDB.prototype.close = function (cb) {
   if (this.closed) {
     return
   }
 
   if (this._stream) {
     this._stream.destroy()
-    this._stream.on('error', function() {})
+    this._stream.on('error', function () {})
     this._stream = null
   }
 
   var that = this
-  MQEmitter.prototype.close.call(this, function() {
+  MQEmitter.prototype.close.call(this, function () {
     that._db.close(cb)
   })
 
