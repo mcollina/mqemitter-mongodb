@@ -26,9 +26,9 @@ function MQEmitterMongoDB (opts) {
 
   this._collection.isCapped(function (err, capped) {
     if (that.closed) { return }
-    if (err) { throw err } // we just don't care, die horribly
 
-    if (!capped) {
+    // if it errs here, the collection might not be there
+    if (err || !capped) {
       // the collection is not capped, make it so
       that._collection.runCommand('convertToCapped', {
         size: opts.size,
