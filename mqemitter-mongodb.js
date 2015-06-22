@@ -24,20 +24,32 @@ function MQEmitterMongoDB (opts) {
   this._db = mongo(opts.url)
   this._collection = this._db.collection(opts.collection)
 
-  this._collection.isCapped(function (err, capped) {
-    if (that.closed) { return }
+  function waitStartup () {
+    that._db.runCommand({ ping: 1 }, function (err, res) {
+      if (that.closed) { return }
 
-    // if it errs here, the collection might not be there
-    if (err || !capped) {
-      // the collection is not capped, make it so
-      that._collection.runCommand('convertToCapped', {
-        size: opts.size,
-        max: opts.max
-      }, start)
-    } else {
-      start()
-    }
-  })
+      if (err || !res.ok) {
+        return setTimeout(waitStartup, 1000)
+      }
+
+      that._collection.isCapped(function (err, capped) {
+        if (that.closed) { return }
+
+        // if it errs here, the collection might not be there
+        if (err || !capped) {
+          // the collection is not capped, make it so
+          that._collection.runCommand('convertToCapped', {
+            size: opts.size,
+            max: opts.max
+          }, start)
+        } else {
+          start()
+        }
+      })
+    })
+  }
+
+  waitStartup()
 
   var oldEmit = MQEmitter.prototype.emit
 
