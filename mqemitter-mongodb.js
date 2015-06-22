@@ -4,7 +4,7 @@ var mongo = require('mongojs')
 var inherits = require('inherits')
 var MQEmitter = require('mqemitter')
 var through = require('through2')
-var eos = require('end-of-stream')
+var pump = require('pump')
 
 function MQEmitterMongoDB (opts) {
   if (!(this instanceof MQEmitterMongoDB)) {
@@ -55,16 +55,16 @@ function MQEmitterMongoDB (opts) {
 
     that._stream = that._collection.find({
       _id: { $gt: that._lastId }
-    }, {
+    }, {}, {
       tailable: true,
       timeout: false,
-      awaitdata: true,
+      awaitData: true,
       numberOfRetries: -1
     })
 
-    eos(that._stream, start)
+    pump(that._stream, through.obj(process), start)
 
-    that._stream.pipe(through.obj(function process (obj, enc, cb) {
+    function process (obj, enc, cb) {
       if (that.closed) {
         return cb()
       }
@@ -72,7 +72,7 @@ function MQEmitterMongoDB (opts) {
       failures = 0
       that._lastId = obj._id
       oldEmit.call(that, obj, cb)
-    }))
+    }
   }
 
   MQEmitter.call(this, opts)
@@ -82,7 +82,7 @@ inherits(MQEmitterMongoDB, MQEmitter)
 
 function nop () {}
 MQEmitterMongoDB.prototype.emit = function (obj, cb) {
-  this._collection.insert(obj, { w: 1 }, cb || nop)
+  this._collection.insert(obj, cb || nop)
   return this
 }
 
