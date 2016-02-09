@@ -20,13 +20,13 @@
   "devDependencies": {
     "faucet": "0.0.1",
     "pre-commit": "^1.0.7",
-    "standard": "^4.0.1",
+    "standard": "^6.0.0",
     "tape": "^4.0.0"
   },
   "dependencies": {
     "inherits": "^2.0.1",
-    "mongojs": "^1.0.0",
-    "mqemitter": "^0.4.0",
+    "mongojs": "^2.3.0",
+    "mqemitter": "^1.0.0",
     "pump": "^1.0.0",
     "through2": "^2.0.0"
   }

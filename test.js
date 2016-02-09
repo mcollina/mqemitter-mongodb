@@ -7,7 +7,7 @@ var abstractTests = require('mqemitter/abstractTest.js')
 abstractTests({
   builder: function (opts) {
     opts = opts || {}
-    opts.url = 'mongodb://127.0.0.1/mqemitter-test?auto_reconnect'
+    opts.url = 'mongodb://127.0.0.1/mqemitter-test'
 
     // idiot quirk because mongo is too slow in delivering my message
     var emitter = mongoEmitter(opts)
