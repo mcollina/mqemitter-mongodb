@@ -23,6 +23,7 @@ function MQEmitterMongoDB (opts) {
 
   this._db = mongo(opts.url)
   this._collection = this._db.collection(opts.collection)
+  this._started = false
 
   function waitStartup () {
     that._db.runCommand({ ping: 1 }, function (err, res) {
@@ -56,13 +57,10 @@ function MQEmitterMongoDB (opts) {
   this._lastId = new mongo.ObjectId()
 
   var failures = 0
+
   function start () {
     if (that.closed) {
       return
-    }
-
-    if (failures++ === 10) {
-      throw new Error('Connection to mongo is dead')
     }
 
     that._stream = that._collection.find({
@@ -74,13 +72,19 @@ function MQEmitterMongoDB (opts) {
       numberOfRetries: -1
     })
 
-    pump(that._stream, through.obj(process), start)
+    pump(that._stream, through.obj(process), function () {
+      if (that._started && ++failures === 10) {
+        throw new Error('Lost connection to MongoDB')
+      }
+      setTimeout(start, 100)
+    })
 
     function process (obj, enc, cb) {
       if (that.closed) {
         return cb()
       }
 
+      that._started = true
       failures = 0
       that._lastId = obj._id
       oldEmit.call(that, obj, cb)
@@ -102,6 +106,8 @@ MQEmitterMongoDB.prototype.close = function (cb) {
   if (this.closed) {
     return
   }
+
+  this.closed = true
 
   if (this._stream) {
     this._stream.destroy()
