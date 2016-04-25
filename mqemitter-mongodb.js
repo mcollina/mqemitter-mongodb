@@ -5,6 +5,8 @@ var inherits = require('inherits')
 var MQEmitter = require('mqemitter')
 var through = require('through2')
 var pump = require('pump')
+var nextTick = process.nextTick
+var EE = require('events').EventEmitter
 
 function MQEmitterMongoDB (opts) {
   if (!(this instanceof MQEmitterMongoDB)) {
@@ -27,6 +29,7 @@ function MQEmitterMongoDB (opts) {
   ])
   this._collection = this._db[opts.collection]
   this._started = false
+  this.status = new EE()
 
   function waitStartup () {
     that._db.runCommand({ ping: 1 }, function (err, res) {
@@ -63,7 +66,7 @@ function MQEmitterMongoDB (opts) {
 
   var oldEmit = MQEmitter.prototype.emit
 
-  this._tounlock = []
+  this._waiting = {}
 
   this._lastId = new mongo.ObjectId()
 
@@ -83,6 +86,8 @@ function MQEmitterMongoDB (opts) {
       numberOfRetries: -1
     })
 
+    that.status.emit('stream')
+
     pump(that._stream, through.obj(process), function () {
       if (that._started && ++failures === 10) {
         throw new Error('Lost connection to MongoDB')
@@ -99,26 +104,24 @@ function MQEmitterMongoDB (opts) {
       failures = 0
       that._lastId = obj._id
       oldEmit.call(that, obj, cb)
-      setImmediate(unlock)
+
+      var id = obj._id.toString()
+      if (that._waiting[id]) {
+        nextTick(that._waiting[id])
+        delete that._waiting[id]
+      }
     }
   }
 
   MQEmitter.call(this, opts)
-
-  function unlock () {
-    var tounlock = that._tounlock
-    for (var i = 0; i < tounlock.length; i++) {
-      tounlock[i]()
-    }
-    that._tounlock = []
-  }
 }
 
 inherits(MQEmitterMongoDB, MQEmitter)
 
 MQEmitterMongoDB.prototype.emit = function (obj, cb) {
+  var that = this
   var err
-  var tounlock = this._tounlock
+
   if (this.closed) {
     err = new Error('MQEmitterMongoDB is closed')
     if (cb) {
@@ -126,18 +129,24 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
     } else {
       throw err
     }
+  } else if (!this._stream) {
+    // actively poll if stream is available
+    this.status.once('stream', this.emit.bind(this, obj, cb))
+    return this
   } else {
-    if (cb) {
-      tounlock.push(cb)
-    }
+    this._collection.insert(obj, function (err, obj) {
+      if (cb) {
+        if (err) {
+          cb(err)
+          return
+        }
 
-    this._collection.insert(obj, function (err) {
-      var i
-      if (err) {
-        if (cb) {
-          i = tounlock.indexOf(cb)
-          tounlock.splice(i, 1)
-          return cb(err)
+        var id = obj._id.toString()
+        var lastId = that._lastId.toString()
+        if (id > lastId) {
+          that._waiting[id] = cb
+        } else {
+          cb()
         }
       }
     })
