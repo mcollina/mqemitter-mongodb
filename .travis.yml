@@ -1,25 +1,18 @@
 language: node_js
-
-env:
-  - MONGODB_VERSION="2.6*"
-  - MONGODB_VERSION="2.8*"
-  - MONGODB_VERSION="3.0*"
-
-before_install:
-  # MongoDB
-  - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
-  - if [ "$MONGODB_VERSION" = "2.4*" ]; then echo "deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen" | sudo tee /etc/apt/sources.list.d/mongodb.list; fi
-  - if [ "$MONGODB_VERSION" = "2.6*" ]; then echo "deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen" | sudo tee /etc/apt/sources.list.d/mongodb.list; fi
-  - if [ "$MONGODB_VERSION" = "2.8*" ]; then echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/testing multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-2.8.list; fi
-  - if [ "$MONGODB_VERSION" = "3.0*" ]; then echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/testing multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-2.8.list; fi
-  - sudo apt-get update
-  - if [ "$MONGODB_VERSION" = "2.4*" ]; then sudo apt-get install -y --force-yes mongodb-10gen=`echo $MONGODB_VERSION`; fi
-  - if [ "$MONGODB_VERSION" != "2.4*" ]; then sudo apt-get install -y --force-yes mongodb-org-server=`echo $MONGODB_VERSION`; fi
-  - mongod --version
-  - if [ "$MONGODB_VERSION" = "2.4*" ]; then sudo service mongodb start; fi
-
+sudo: false
 node_js:
   - "5"
   - "4"
   - "0.12"
   - "0.10"
+env:
+  - MONGODB_VERSION="3.2.5"
+  - MONGODB_VERSION="3.0.11"
+  - MONGODB_VERSION="2.6.12"
+before_install:
+  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-$MONGODB_VERSION.tgz
+  - tar xfz mongodb-linux-x86_64-$MONGODB_VERSION.tgz
+  - export PATH=`pwd`/mongodb-linux-x86_64-$MONGODB_VERSION/bin:$PATH
+  - mkdir -p data/db
+  - mongod --dbpath=data/db &
+  - sleep 5
