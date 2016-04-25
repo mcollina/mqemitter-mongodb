@@ -22,8 +22,10 @@ function MQEmitterMongoDB (opts) {
 
   var that = this
 
-  this._db = mongo(conn)
-  this._collection = this._db.collection(opts.collection)
+  this._db = mongo(conn, [
+    opts.collection
+  ])
+  this._collection = this._db[opts.collection]
   this._started = false
 
   function waitStartup () {
@@ -37,8 +39,14 @@ function MQEmitterMongoDB (opts) {
       that._collection.isCapped(function (err, capped) {
         if (that.closed) { return }
 
-        // if it errs here, the collection might not be there
-        if (err || !capped) {
+        if (err) {
+          // if it errs here, the collection might not exist
+          that._db.createCollection(opts.collection, {
+            capped: true,
+            size: opts.size,
+            max: opts.max
+          }, start)
+        } else if (!capped) {
           // the collection is not capped, make it so
           that._collection.runCommand('convertToCapped', {
             size: opts.size,
