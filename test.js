@@ -3,27 +3,33 @@
 var mongoEmitter = require('./')
 var test = require('tape').test
 var abstractTests = require('mqemitter/abstractTest.js')
+var mongodb = require('mongodb')
 
 abstractTests({
   builder: function (opts) {
     opts = opts || {}
     opts.url = 'mongodb://127.0.0.1/mqemitter-test'
 
-    // idiot quirk because mongo is too slow in delivering my message
-    var emitter = mongoEmitter(opts)
-    var emit = emitter.emit
-
-    emitter.emit = function (obj, cb) {
-      emit.call(emitter, obj, function (err) {
-        setTimeout(function () {
-          if (cb) {
-            cb(err)
-          }
-        }, 50)
-      })
-    }
-
-    return emitter
+    return mongoEmitter(opts)
   },
   test: test
+})
+
+test('reusing a connection', function (t) {
+  mongodb.connect('mongodb://127.0.0.1/mqemitter-test', function (err, db) {
+    t.error(err)
+
+    abstractTests({
+      builder: function (opts) {
+        opts = opts || {}
+        opts.db = db
+
+        return mongoEmitter(opts)
+      },
+      test: t.test.bind(t)
+    })
+    test.onFinish(function () {
+      db.close()
+    })
+  })
 })

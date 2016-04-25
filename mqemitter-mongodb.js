@@ -15,13 +15,14 @@ function MQEmitterMongoDB (opts) {
   opts.size = opts.size || 10 * 1024 * 1024 // 10 MB
   opts.max = opts.max || 10000 // documents
   opts.collection = opts.collection || 'pubsub'
-  opts.url = opts.url || 'mongodb://127.0.0.1/mqemitter?auto_reconnect'
+
+  var conn = opts.db || opts.url || 'mongodb://127.0.0.1/mqemitter?auto_reconnect=true'
 
   this._opts = opts
 
   var that = this
 
-  this._db = mongo(opts.url)
+  this._db = mongo(conn)
   this._collection = this._db.collection(opts.collection)
   this._started = false
 
@@ -53,6 +54,8 @@ function MQEmitterMongoDB (opts) {
   waitStartup()
 
   var oldEmit = MQEmitter.prototype.emit
+
+  this._tounlock = []
 
   this._lastId = new mongo.ObjectId()
 
@@ -88,17 +91,49 @@ function MQEmitterMongoDB (opts) {
       failures = 0
       that._lastId = obj._id
       oldEmit.call(that, obj, cb)
+      setImmediate(unlock)
     }
   }
 
   MQEmitter.call(this, opts)
+
+  function unlock () {
+    var tounlock = that._tounlock
+    for (var i = 0; i < tounlock.length; i++) {
+      tounlock[i]()
+    }
+    that._tounlock = []
+  }
 }
 
 inherits(MQEmitterMongoDB, MQEmitter)
 
-function nop () {}
 MQEmitterMongoDB.prototype.emit = function (obj, cb) {
-  this._collection.insert(obj, cb || nop)
+  var err
+  var tounlock = this._tounlock
+  if (this.closed) {
+    err = new Error('MQEmitterMongoDB is closed')
+    if (cb) {
+      cb(err)
+    } else {
+      throw err
+    }
+  } else {
+    if (cb) {
+      tounlock.push(cb)
+    }
+
+    this._collection.insert(obj, function (err) {
+      var i
+      if (err) {
+        if (cb) {
+          i = tounlock.indexOf(cb)
+          tounlock.splice(i, 1)
+          return cb(err)
+        }
+      }
+    })
+  }
   return this
 }
 
@@ -117,7 +152,12 @@ MQEmitterMongoDB.prototype.close = function (cb) {
 
   var that = this
   MQEmitter.prototype.close.call(this, function () {
-    that._db.close(cb)
+    if (that._opts.db) {
+      cb()
+    } else {
+      // force close
+      that._db.close(true, cb)
+    }
   })
 
   return this
