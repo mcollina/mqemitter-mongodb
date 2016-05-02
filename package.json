@@ -4,13 +4,9 @@
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
-    "lint": "standard",
-    "test": "tape test.js | faucet"
+    "test": "standard && tape test.js | faucet"
   },
-  "pre-commit": [
-    "lint",
-    "test"
-  ],
+  "pre-commit": "test",
   "repository": {
     "type": "git",
     "url": "https://github.com/mcollina/mqemitter-mongodb.git"
@@ -27,7 +23,7 @@
   "dependencies": {
     "inherits": "^2.0.1",
     "mongojs": "^2.3.0",
-    "mqemitter": "^1.0.0",
+    "mqemitter": "^2.0.0",
     "pump": "^1.0.0",
     "through2": "^2.0.0"
   }
