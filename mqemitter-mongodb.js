@@ -177,7 +177,8 @@ MQEmitterMongoDB.prototype.close = function (cb) {
       cb()
     } else {
       // force close
-      that._db.close(true, cb)
+      that._db.close(cb)
+      that._db.unref()
     }
   })
 
