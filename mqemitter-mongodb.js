@@ -1,6 +1,7 @@
 'use strict'
 
-var mongo = require('mongojs')
+var mongodb = require('mongodb')
+var MongoClient = mongodb.MongoClient
 var inherits = require('inherits')
 var MQEmitter = require('mqemitter')
 var through = require('through2')
@@ -24,59 +25,53 @@ function MQEmitterMongoDB (opts) {
 
   var that = this
 
-  this._db = mongo(url, [
-    opts.collection
-  ])
-  this._collection = this._db[opts.collection]
+  this._db = null
+
+  MongoClient.connect(url, function (err, db) {
+    if (err) {
+      that.status.emit('error', err)
+      return
+    }
+    that._db = db
+    waitStartup()
+  })
+
   this._started = false
   this.status = new EE()
 
   function waitStartup () {
-    that._db.runCommand({ ping: 1 }, function (err, res) {
+    that._collection = that._db.collection(opts.collection)
+    that._collection.isCapped(function (err, capped) {
       if (that.closed) { return }
 
-      if (err || !res.ok) {
-        return setTimeout(waitStartup, 1000)
+      if (err) {
+        // if it errs here, the collection might not exist
+        that._db.createCollection(opts.collection, {
+          capped: true,
+          size: opts.size,
+          max: opts.max
+        }, start)
+      } else if (!capped) {
+        // the collection is not capped, make it so
+        that._collection.runCommand('convertToCapped', {
+          size: opts.size,
+          max: opts.max
+        }, start)
+      } else {
+        start()
       }
-
-      that._collection.isCapped(function (err, capped) {
-        if (that.closed) { return }
-
-        if (err) {
-          // if it errs here, the collection might not exist
-          that._db.createCollection(opts.collection, {
-            capped: true,
-            size: opts.size,
-            max: opts.max
-          }, start)
-        } else if (!capped) {
-          // the collection is not capped, make it so
-          that._collection.runCommand('convertToCapped', {
-            size: opts.size,
-            max: opts.max
-          }, start)
-        } else {
-          start()
-        }
-      })
     })
   }
-
-  waitStartup()
 
   var oldEmit = MQEmitter.prototype.emit
 
   this._waiting = {}
 
-  this._lastId = new mongo.ObjectId()
+  this._lastId = new mongodb.ObjectId()
 
   var failures = 0
 
   function start () {
-    if (that.closed) {
-      return
-    }
-
     that._stream = that._collection.find({
       _id: { $gt: that._lastId }
     }, {}, {
@@ -86,14 +81,18 @@ function MQEmitterMongoDB (opts) {
       numberOfRetries: -1
     })
 
-    that.status.emit('stream')
-
     pump(that._stream, through.obj(process), function () {
+      if (that.closed) {
+        return
+      }
+
       if (that._started && ++failures === 10) {
-        throw new Error('Lost connection to MongoDB')
+        that.status.emit('error', new Error('Lost connection to MongoDB'))
       }
       setTimeout(start, 100)
     })
+
+    that.status.emit('stream')
 
     function process (obj, enc, cb) {
       if (that.closed) {
@@ -112,7 +111,6 @@ function MQEmitterMongoDB (opts) {
       }
     }
   }
-
   MQEmitter.call(this, opts)
 }
 
@@ -122,25 +120,26 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
   var that = this
   var err
 
-  if (this.closed) {
+  if (!this.closed && !this._stream) {
+    // actively poll if stream is available
+    this.status.once('stream', this.emit.bind(this, obj, cb))
+    return this
+  } else if (this.closed) {
     err = new Error('MQEmitterMongoDB is closed')
     if (cb) {
       cb(err)
     } else {
       throw err
     }
-  } else if (!this._stream) {
-    // actively poll if stream is available
-    this.status.once('stream', this.emit.bind(this, obj, cb))
-    return this
   } else {
-    this._collection.insert(obj, function (err, obj) {
+    this._collection.insert(obj, function (err, res) {
       if (cb) {
         if (err) {
           cb(err)
           return
         }
 
+        var obj = res.ops[0]
         var id = obj._id.toString()
         var lastId = that._lastId.toString()
         if (id > lastId) {
@@ -155,17 +154,22 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
 }
 
 MQEmitterMongoDB.prototype.close = function (cb) {
+  cb = cb || noop
+
   if (this.closed) {
+    return cb()
+  }
+
+  if (!this._stream) {
+    this.status.once('stream', this.close.bind(this, cb))
     return
   }
 
-  this.closed = true
+  this._stream.destroy()
+  this._stream.on('error', function () {})
+  this._stream = null
 
-  if (this._stream) {
-    this._stream.destroy()
-    this._stream.on('error', function () {})
-    this._stream = null
-  }
+  this.closed = true
 
   var that = this
   MQEmitter.prototype.close.call(this, function () {
@@ -179,5 +183,7 @@ MQEmitterMongoDB.prototype.close = function (cb) {
 
   return this
 }
+
+function noop () {}
 
 module.exports = MQEmitterMongoDB

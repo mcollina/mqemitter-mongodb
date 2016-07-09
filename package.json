@@ -15,13 +15,14 @@
   "license": "MIT",
   "devDependencies": {
     "faucet": "0.0.1",
+    "mongo-clean": "^1.2.2",
     "pre-commit": "^1.0.7",
     "standard": "^7.0.0",
     "tape": "^4.0.0"
   },
   "dependencies": {
     "inherits": "^2.0.1",
-    "mongojs": "^2.3.0",
+    "mongodb": "^2.2.0",
     "mqemitter": "^2.0.0",
     "pump": "^1.0.0",
     "through2": "^2.0.0"
