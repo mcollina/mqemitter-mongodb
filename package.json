@@ -15,9 +15,8 @@
   "license": "MIT",
   "devDependencies": {
     "faucet": "0.0.1",
-    "mongodb": "^2.1.16",
     "pre-commit": "^1.0.7",
-    "standard": "^6.0.0",
+    "standard": "^7.0.0",
     "tape": "^4.0.0"
   },
   "dependencies": {

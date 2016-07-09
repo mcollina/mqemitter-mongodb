@@ -18,13 +18,13 @@ function MQEmitterMongoDB (opts) {
   opts.max = opts.max || 10000 // documents
   opts.collection = opts.collection || 'pubsub'
 
-  var conn = opts.db || opts.url || 'mongodb://127.0.0.1/mqemitter?auto_reconnect=true'
+  var url = opts.url || 'mongodb://127.0.0.1/mqemitter?auto_reconnect=true'
 
   this._opts = opts
 
   var that = this
 
-  this._db = mongo(conn, [
+  this._db = mongo(url, [
     opts.collection
   ])
   this._collection = this._db[opts.collection]
