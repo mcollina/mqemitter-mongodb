@@ -27,14 +27,19 @@ function MQEmitterMongoDB (opts) {
 
   this._db = null
 
-  MongoClient.connect(url, function (err, db) {
-    if (err) {
-      that.status.emit('error', err)
-      return
-    }
-    that._db = db
+  if (opts.db) {
+    that._db = opts.db
     waitStartup()
-  })
+  } else {
+    MongoClient.connect(url, function (err, db) {
+      if (err) {
+        return that.status.emit('error', err)
+      }
+
+      that._db = db
+      waitStartup()
+    })
+  }
 
   this._started = false
   this.status = new EE()
@@ -176,7 +181,6 @@ MQEmitterMongoDB.prototype.close = function (cb) {
     if (that._opts.db) {
       cb()
     } else {
-      // force close
       that._db.close(cb)
       that._db.unref()
     }
