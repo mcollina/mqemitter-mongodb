@@ -58,7 +58,8 @@ function MQEmitterMongoDB (opts) {
         }, start)
       } else if (!capped) {
         // the collection is not capped, make it so
-        that._collection.runCommand('convertToCapped', {
+        that._db.command({
+          convertToCapped: opts.collection,
           size: opts.size,
           max: opts.max
         }, start)
