@@ -105,9 +105,9 @@ function MQEmitterMongoDB (opts) {
         return cb()
       }
 
-      // convert back to buffer
-      if (typeof obj.payload === 'string') {
-        obj.payload = new Buffer(obj.payload)
+      // convert mongo binary to buffer
+      if (obj.payload && obj.payload._bsontype) {
+        obj.payload = obj.payload.read(0, obj.payload.length())
       }
 
       that._started = true
@@ -143,10 +143,6 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
       throw err
     }
   } else {
-    if (obj.payload && Buffer.isBuffer(obj.payload)) {
-      obj.payload = obj.payload.toString() // convert buffer to string before insertion
-    }
-
     this._collection.insert(obj, function (err, res) {
       if (cb) {
         if (err) {
