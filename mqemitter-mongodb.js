@@ -138,6 +138,10 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
       throw err
     }
   } else {
+    if (obj.payload && Buffer.isBuffer(obj.payload)) {
+      obj.payload = obj.payload.toString() // convert buffer to string before insertion
+    }
+
     this._collection.insert(obj, function (err, res) {
       if (cb) {
         if (err) {
