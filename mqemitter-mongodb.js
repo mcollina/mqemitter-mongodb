@@ -105,6 +105,11 @@ function MQEmitterMongoDB (opts) {
         return cb()
       }
 
+      // convert back to buffer
+      if (typeof obj.payload === 'string') {
+        obj.payload = new Buffer(obj.payload)
+      }
+
       that._started = true
       failures = 0
       that._lastId = obj._id
