@@ -105,6 +105,11 @@ function MQEmitterMongoDB (opts) {
         return cb()
       }
 
+      // convert mongo binary to buffer
+      if (obj.payload && obj.payload._bsontype) {
+        obj.payload = obj.payload.read(0, obj.payload.length())
+      }
+
       that._started = true
       failures = 0
       that._lastId = obj._id
