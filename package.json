@@ -20,7 +20,7 @@
     "faucet": "0.0.1",
     "mongo-clean": "^1.2.2",
     "pre-commit": "^1.0.7",
-    "standard": "^7.0.0",
+    "standard": "^9.0.0",
     "tape": "^4.0.0"
   },
   "dependencies": {
