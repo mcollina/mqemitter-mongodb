@@ -1,5 +1,6 @@
 'use strict'
 
+var urlModule = require('url')
 var mongodb = require('mongodb')
 var MongoClient = mongodb.MongoClient
 var inherits = require('inherits')
@@ -19,7 +20,7 @@ function MQEmitterMongoDB (opts) {
   opts.max = opts.max || 10000 // documents
   opts.collection = opts.collection || 'pubsub'
 
-  var url = opts.url || 'mongodb://127.0.0.1/mqemitter?auto_reconnect=true'
+  var url = opts.url || 'mongodb://127.0.0.1/mqemitter'
 
   this._opts = opts
 
@@ -31,12 +32,16 @@ function MQEmitterMongoDB (opts) {
     that._db = opts.db
     waitStartup()
   } else {
-    MongoClient.connect(url, function (err, db) {
+    MongoClient.connect(url, function (err, client) {
       if (err) {
         return that.status.emit('error', err)
       }
 
-      that._db = db
+      var urlParsed = urlModule.parse(that._opts.url)
+      var databaseName = urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined
+
+      that._client = client
+      that._db = client.db(databaseName)
       waitStartup()
     })
   }
@@ -187,8 +192,7 @@ MQEmitterMongoDB.prototype.close = function (cb) {
     if (that._opts.db) {
       cb()
     } else {
-      that._db.close(cb)
-      that._db.unref()
+      that._client.close(cb)
     }
   })
 
