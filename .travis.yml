@@ -4,7 +4,6 @@ node_js:
   - "10"
   - "8"
   - "6"
-  - "4"
 env:
   - MONGODB_VERSION="3.2.5"
   - MONGODB_VERSION="3.0.11"
