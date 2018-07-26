@@ -85,7 +85,7 @@ function MQEmitterMongoDB (opts) {
   function start () {
     that._stream = that._collection.find({
       _id: { $gt: that._lastId }
-    }, {}, {
+    }, {
       tailable: true,
       timeout: false,
       awaitData: true,
