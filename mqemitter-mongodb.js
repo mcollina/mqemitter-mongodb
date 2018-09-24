@@ -156,13 +156,42 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
         }
 
         var obj = res.ops[0]
-        var id = obj._id.toString()
-        var lastId = that._lastId.toString()
-        if (id > lastId) {
-          that._waiting[id] = cb
-        } else {
+        var id = obj._id
+        var lastId = that._lastId
+        var t1 = id.getTimestamp().getTime()
+        var t2 = lastId.getTimestamp().getTime()
+
+        // we need to check only the date part
+        if (t1 < t2) {
           cb()
+          return
+        } else if (t1 === t2) {
+          // we need to dig deeper and check the ObjectId counter
+          var b1 = Buffer.from(id.toString(), 'hex')
+          var b2 = Buffer.from(lastId.toString(), 'hex')
+
+          // if they are not equals we call the callback
+          // immediately to avoid leaks
+          if (!b1.slice(4, 8).equals(b2.slice(4, 8))) {
+            cb()
+            return
+          }
+
+          // the last three bytes are the random counter
+          var one = (b1[9] << 16) + (b1[10] << 8) + b1[11]
+          var two = (b2[9] << 16) + (b2[10] << 8) + b2[11]
+
+          // for some reasons we have to increase two by one
+          // or we will leak data
+          if (one <= two + 1) {
+            // TODO investigate we we need to increment by 1 and delay by 50ms
+            // to not leak
+            setTimeout(cb, 50)
+            return
+          }
         }
+
+        that._waiting[id.toString()] = cb
       }
     })
   }
