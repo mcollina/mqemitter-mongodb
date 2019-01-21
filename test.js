@@ -7,9 +7,9 @@ var test = require('tape').test
 var abstractTests = require('mqemitter/abstractTest.js')
 var clean = require('mongo-clean')
 var dbname = 'mqemitter-test'
-var url = 'mongodb://127.0.0.1/'
+var url = 'mongodb://127.0.0.1/' + dbname
 
-MongoClient.connect(url, { w: 1 }, function (err, client) {
+MongoClient.connect(url, { useNewUrlParser: true, w: 1 }, function (err, client) {
   if (err) {
     throw err
   }

@@ -32,7 +32,7 @@ function MQEmitterMongoDB (opts) {
     that._db = opts.db
     waitStartup()
   } else {
-    MongoClient.connect(url, function (err, client) {
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
       if (err) {
         return that.status.emit('error', err)
       }
@@ -148,7 +148,7 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
       throw err
     }
   } else {
-    this._collection.insert(obj, function (err, res) {
+    this._collection.insertOne(obj, function (err, res) {
       if (cb) {
         if (err) {
           cb(err)
