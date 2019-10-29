@@ -32,13 +32,16 @@ function MQEmitterMongoDB (opts) {
     that._db = opts.db
     waitStartup()
   } else {
-    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
+    var defaultOpts = { useNewUrlParser: true }
+    var mongoOpts = that._opts.mongo ? Object.assign(defaultOpts, that._opts.mongo) : defaultOpts
+    MongoClient.connect(url, mongoOpts, function (err, client) {
       if (err) {
         return that.status.emit('error', err)
       }
 
       var urlParsed = urlModule.parse(that._opts.url)
-      var databaseName = urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined
+      var databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined)
+      databaseName = databaseName.substr(databaseName.lastIndexOf('/') + 1)
 
       that._client = client
       that._db = client.db(databaseName)
