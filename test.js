@@ -40,13 +40,12 @@ MongoClient.connect(url, { useNewUrlParser: true, w: 1 }, function (err, client)
         url: url
       })
 
-      t.timeoutAfter(3000)
-      setTimeout(function () {
+      mqEmitterMongoDB.status.once('stream', function () {
         t.equal(mqEmitterMongoDB._db.databaseName, dbname)
         t.ok(true, 'database name is default db name')
         t.end()
         mqEmitterMongoDB.close()
-      }, 2500)
+      })
     })
 
     test('with database option', function (t) {
@@ -57,13 +56,12 @@ MongoClient.connect(url, { useNewUrlParser: true, w: 1 }, function (err, client)
         database: 'test-custom-db-name'
       })
 
-      t.timeoutAfter(3000)
-      setTimeout(function () {
+      mqEmitterMongoDB.status.once('stream', function () {
         t.equal(mqEmitterMongoDB._db.databaseName, 'test-custom-db-name')
         t.ok(true, 'database name is custom db name')
         t.end()
         mqEmitterMongoDB.close()
-      }, 2500)
+      })
     })
 
     test('with mongodb options', function (t) {
@@ -76,14 +74,14 @@ MongoClient.connect(url, { useNewUrlParser: true, w: 1 }, function (err, client)
           poolSize: 9
         }
       })
-      t.timeoutAfter(3000)
-      setTimeout(function () {
+
+      mqEmitterMongoDB.status.once('stream', function () {
         t.equal(mqEmitterMongoDB._db.serverConfig.s.clonedOptions.keepAlive, false)
         t.equal(mqEmitterMongoDB._db.serverConfig.s.clonedOptions.poolSize, 9)
         t.ok(true, 'database name is default db name')
         t.end()
         mqEmitterMongoDB.close()
-      }, 2500)
+      })
     })
   })
 })
