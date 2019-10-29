@@ -4,7 +4,8 @@
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
-    "test": "standard && tape test.js | faucet"
+    "test": "standard && tape test.js | faucet",
+    "mongo": "docker run -p 27017:27017 mongo:4"
   },
   "pre-commit": "test",
   "repository": {
@@ -26,7 +27,7 @@
   "dependencies": {
     "inherits": "^2.0.3",
     "mongodb": "^3.0.11",
-    "mqemitter": "^2.2.0",
+    "mqemitter": "^3.0.0",
     "pump": "^3.0.0",
     "through2": "^3.0.0"
   }

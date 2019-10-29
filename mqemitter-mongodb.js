@@ -32,7 +32,7 @@ function MQEmitterMongoDB (opts) {
     that._db = opts.db
     waitStartup()
   } else {
-    var defaultOpts = { useNewUrlParser: true }
+    var defaultOpts = { useNewUrlParser: true, useUnifiedTopology: true }
     var mongoOpts = that._opts.mongo ? Object.assign(defaultOpts, that._opts.mongo) : defaultOpts
     MongoClient.connect(url, mongoOpts, function (err, client) {
       if (err) {

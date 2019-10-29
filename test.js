@@ -9,7 +9,7 @@ var clean = require('mongo-clean')
 var dbname = 'mqemitter-test'
 var url = 'mongodb://127.0.0.1/' + dbname
 
-MongoClient.connect(url, { useNewUrlParser: true, w: 1 }, function (err, client) {
+MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1 }, function (err, client) {
   if (err) {
     throw err
   }
@@ -76,8 +76,8 @@ MongoClient.connect(url, { useNewUrlParser: true, w: 1 }, function (err, client)
       })
 
       mqEmitterMongoDB.status.once('stream', function () {
-        t.equal(mqEmitterMongoDB._db.serverConfig.s.clonedOptions.keepAlive, false)
-        t.equal(mqEmitterMongoDB._db.serverConfig.s.clonedOptions.poolSize, 9)
+        t.equal(mqEmitterMongoDB._db.topology.s.options.keepAlive, false)
+        t.equal(mqEmitterMongoDB._db.topology.s.options.size, 9)
         t.ok(true, 'database name is default db name')
         t.end()
         mqEmitterMongoDB.close()
