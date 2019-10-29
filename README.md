@@ -40,6 +40,20 @@ mq.emit(msg, function () {
 })
 ```
 
+API
+-----
+### MQEmitterMongoDB([opts])
+
+Create a new instance of mqemitter-mongodb.
+
+Options:
+
+* `url`: a mongodb endpoint url
+* `database`: a mongodb database name, by default it comes from the uri
+* `mongo`: options for mongodb client
+* `db`: a db instance of mongodb (instead of url)
+
+
 Acknowledgements
 ----------------
 
