@@ -41,6 +41,7 @@ function MQEmitterMongoDB (opts) {
 
       var urlParsed = urlModule.parse(that._opts.url)
       var databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined)
+      databaseName = databaseName.substr(databaseName.lastIndexOf('/') + 1)
 
       that._client = client
       that._db = client.db(databaseName)
