@@ -1,6 +1,6 @@
 {
   "name": "mqemitter-mongodb",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
