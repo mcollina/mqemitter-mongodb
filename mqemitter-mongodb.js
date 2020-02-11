@@ -39,6 +39,7 @@ function MQEmitterMongoDB (opts) {
         return that.status.emit('error', err)
       }
 
+      /* eslint-disable */
       var urlParsed = urlModule.parse(that._opts.url)
       var databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined)
       databaseName = databaseName.substr(databaseName.lastIndexOf('/') + 1)

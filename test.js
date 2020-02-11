@@ -77,7 +77,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
 
       mqEmitterMongoDB.status.once('stream', function () {
         t.equal(mqEmitterMongoDB._db.topology.s.options.keepAlive, false)
-        t.equal(mqEmitterMongoDB._db.topology.s.options.size, 9)
+        t.equal(mqEmitterMongoDB._db.topology.s.options.poolSize, 9)
         t.ok(true, 'database name is default db name')
         t.end()
         mqEmitterMongoDB.close()
