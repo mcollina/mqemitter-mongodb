@@ -21,13 +21,13 @@
     "faucet": "0.0.1",
     "mongo-clean": "^2.0.0",
     "pre-commit": "^1.0.7",
-    "standard": "^12.0.1",
+    "standard": "^14.0.0",
     "tape": "^4.9.2"
   },
   "dependencies": {
     "inherits": "^2.0.3",
-    "mongodb": "^3.0.11",
-    "mqemitter": "^3.0.0",
+    "mongodb": "^3.5.2",
+    "mqemitter": "^4.0.0",
     "pump": "^3.0.0",
     "through2": "^3.0.0"
   }
