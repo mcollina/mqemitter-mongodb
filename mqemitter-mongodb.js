@@ -1,14 +1,14 @@
 'use strict'
 
-var urlModule = require('url')
-var mongodb = require('mongodb')
-var MongoClient = mongodb.MongoClient
-var inherits = require('inherits')
-var MQEmitter = require('mqemitter')
-var through = require('through2')
-var pump = require('pump')
-var nextTick = process.nextTick
-var EE = require('events').EventEmitter
+const urlModule = require('url')
+const mongodb = require('mongodb')
+const MongoClient = mongodb.MongoClient
+const inherits = require('inherits')
+const MQEmitter = require('mqemitter')
+const through = require('through2')
+const pump = require('pump')
+const nextTick = process.nextTick
+const EE = require('events').EventEmitter
 
 function MQEmitterMongoDB (opts) {
   if (!(this instanceof MQEmitterMongoDB)) {
@@ -64,16 +64,16 @@ function MQEmitterMongoDB (opts) {
           capped: true,
           size: opts.size,
           max: opts.max
-        }, start)
+        }, setLast)
       } else if (!capped) {
         // the collection is not capped, make it so
         that._db.command({
           convertToCapped: opts.collection,
           size: opts.size,
           max: opts.max
-        }, start)
+        }, setLast)
       } else {
-        start()
+        setLast()
       }
     })
   }
@@ -82,14 +82,28 @@ function MQEmitterMongoDB (opts) {
 
   this._waiting = {}
 
-  this._lastId = new mongodb.ObjectId()
-
   var failures = 0
 
+  function setLast (err) {
+    if(err) {
+      return that.status.emit('error', err)
+    } 
+
+    that._collection
+    .find({}, { timeout: false, sortValue: {$natural: -1}, limit: 1})
+    .next(function (err, doc) {
+      if(err){
+        that.status.emit('error', err)
+      }
+
+      that._lastId = doc ? doc._id : new mongodb.ObjectID();
+      start()
+    });  
+  }
+
   function start () {
-    that._stream = that._collection.find({
-      _id: { $gt: that._lastId }
-    }, {
+
+    that._stream = that._collection.find(that._lastId ? { _id: { $gt: that._lastId } } : null, {
       tailable: true,
       timeout: false,
       awaitData: true,
@@ -124,13 +138,14 @@ function MQEmitterMongoDB (opts) {
       that._lastId = obj._id
       oldEmit.call(that, obj, cb)
 
-      var id = obj._id.toString()
+      const id = obj._id.toString()
       if (that._waiting[id]) {
         nextTick(that._waiting[id])
         delete that._waiting[id]
       }
     }
   }
+
   MQEmitter.call(this, opts)
 }
 
