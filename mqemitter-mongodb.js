@@ -90,7 +90,9 @@ function MQEmitterMongoDB (opts) {
     } 
 
     that._collection
-    .find({}, { timeout: false, sortValue: {$natural: -1}, limit: 1})
+    .find({}, { timeout: false })
+    .sort({$natural : -1})
+    .limit(1)
     .next(function (err, doc) {
       if(err){
         that.status.emit('error', err)
@@ -103,7 +105,7 @@ function MQEmitterMongoDB (opts) {
 
   function start () {
 
-    that._stream = that._collection.find(that._lastId ? { _id: { $gt: that._lastId } } : null, {
+    that._stream = that._collection.find({ _id: { $gt: that._lastId }}, {
       tailable: true,
       timeout: false,
       awaitData: true,
@@ -163,8 +165,6 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
     err = new Error('MQEmitterMongoDB is closed')
     if (cb) {
       cb(err)
-    } else {
-      throw err
     }
   } else {
     this._collection.insertOne(obj, function (err, res) {
