@@ -48,6 +48,34 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
       })
     })
 
+    test('should fetch last packet id', function (t) {
+      t.plan(5)
+
+      var started = 0
+      var lastId = new mongodb.ObjectId()
+
+      function startInstance (cb) {
+        var mqEmitterMongoDB = MongoEmitter({
+          url: url
+        })
+
+        mqEmitterMongoDB.status.once('stream', function () {
+          t.equal(mqEmitterMongoDB._db.databaseName, dbname)
+          t.ok(true, 'database name is default db name')
+          if (++started === 1) {
+            mqEmitterMongoDB.emit({ topic: 'last/packet', payload: 'I\'m the last', _id: lastId }, mqEmitterMongoDB.close.bind(mqEmitterMongoDB, cb))
+          } else {
+            t.equal(mqEmitterMongoDB._lastId.toString(), lastId.toString(), 'Should fetch last Id')
+            mqEmitterMongoDB.close(cb)
+          }
+        })
+      }
+
+      startInstance(function () {
+        startInstance(t.end.bind(t))
+      })
+    })
+
     test('with database option', function (t) {
       t.plan(2)
 
