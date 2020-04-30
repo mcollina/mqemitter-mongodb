@@ -21,6 +21,7 @@ function MQEmitterMongoDB (opts) {
   opts.collection = opts.collection || 'pubsub'
 
   var url = opts.url || 'mongodb://127.0.0.1/mqemitter'
+  this.status = new EE()
 
   this._opts = opts
 
@@ -30,7 +31,7 @@ function MQEmitterMongoDB (opts) {
 
   if (opts.db) {
     that._db = opts.db
-    waitStartup()
+    setImmediate(waitStartup)
   } else {
     var defaultOpts = { useNewUrlParser: true, useUnifiedTopology: true }
     var mongoOpts = that._opts.mongo ? Object.assign(defaultOpts, that._opts.mongo) : defaultOpts
@@ -51,7 +52,6 @@ function MQEmitterMongoDB (opts) {
   }
 
   this._started = false
-  this.status = new EE()
 
   function waitStartup () {
     that._collection = that._db.collection(opts.collection)
@@ -87,7 +87,7 @@ function MQEmitterMongoDB (opts) {
   function setLast () {
     that._collection
     .find({}, { timeout: false })
-    .sort({$natural : -1})
+    .sort({ $natural : -1 })
     .limit(1)
     .next(function (err, doc) {
       if(err){
