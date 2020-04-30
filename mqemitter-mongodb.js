@@ -84,11 +84,7 @@ function MQEmitterMongoDB (opts) {
 
   var failures = 0
 
-  function setLast (err) {
-    if(err) {
-      return that.status.emit('error', err)
-    } 
-
+  function setLast () {
     that._collection
     .find({}, { timeout: false })
     .sort({$natural : -1})
