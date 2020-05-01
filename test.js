@@ -111,5 +111,28 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
         mqEmitterMongoDB.close()
       })
     })
+
+    // keep this test as last
+    test('doesn\'t throw db errors', function (t) {
+      t.plan(1)
+
+      client.close(true)
+
+      var mqEmitterMongoDB = MongoEmitter({
+        url: url,
+        db: db
+      })
+
+      mqEmitterMongoDB.status.on('error', function (err) {
+        if (err.message !== 'Topology is closed, please connect') {
+          t.fail('throws error')
+        }
+      })
+
+      mqEmitterMongoDB.status.once('stream', function () {
+        t.ok(true, 'database started')
+        mqEmitterMongoDB.close()
+      })
+    })
   })
 })
