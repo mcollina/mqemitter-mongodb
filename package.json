@@ -22,7 +22,7 @@
     "mongo-clean": "^2.0.0",
     "pre-commit": "^1.0.7",
     "standard": "^14.0.0",
-    "tape": "^4.9.2"
+    "tape": "^5.0.1"
   },
   "dependencies": {
     "inherits": "^2.0.3",
