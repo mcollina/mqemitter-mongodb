@@ -29,6 +29,6 @@
     "mongodb": "^3.5.2",
     "mqemitter": "^4.0.0",
     "pump": "^3.0.0",
-    "through2": "^3.0.0"
+    "through2": "^4.0.2"
   }
 }
