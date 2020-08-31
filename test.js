@@ -79,7 +79,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     })
 
     test('leak test', function (t) {
-      const total = 10000
+      const total = 5000
       var count = 0
 
       var mqEmitterMongoDB = MongoEmitter({
@@ -90,16 +90,23 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
 
       mqEmitterMongoDB.status.once('stream', function () {
         mqEmitterMongoDB.on(topic, function (msg, cb) {
+          var fail = false
+          if (count !== msg.payload) {
+            t.fail(`leak detected. Count: ${count} - Payload: ${msg.payload}`)
+            fail = true
+          }
+
           count++
-          cb()
-          if (count === total) {
+
+          if (fail || count === total) {
             t.end()
             mqEmitterMongoDB.close()
           }
+
+          cb()
         })
 
-        for (let index = 0; index < total; index++) {
-          var payload = index
+        for (let payload = 0; payload < total; payload++) {
           mqEmitterMongoDB.emit({ topic, payload })
         }
       })
