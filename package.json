@@ -1,6 +1,6 @@
 {
   "name": "mqemitter-mongodb",
-  "version": "7.0.1",
+  "version": "7.0.2",
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
@@ -22,13 +22,13 @@
     "mongo-clean": "^2.0.0",
     "pre-commit": "^1.0.7",
     "standard": "^14.0.0",
-    "tape": "^4.9.2"
+    "tape": "^5.0.1"
   },
   "dependencies": {
     "inherits": "^2.0.3",
     "mongodb": "^3.5.2",
     "mqemitter": "^4.0.0",
     "pump": "^3.0.0",
-    "through2": "^3.0.0"
+    "through2": "^4.0.2"
   }
 }
