@@ -3,11 +3,13 @@
 var mongodb = require('mongodb')
 var MongoClient = mongodb.MongoClient
 var MongoEmitter = require('./')
-var test = require('tape').test
+var { test } = require('tape')
 var abstractTests = require('mqemitter/abstractTest.js')
 var clean = require('mongo-clean')
 var dbname = 'mqemitter-test'
 var url = 'mongodb://127.0.0.1/' + dbname
+
+console.time('test')
 
 MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1 }, function (err, client) {
   if (err) {
@@ -76,6 +78,33 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
       })
     })
 
+    test('leak test', function (t) {
+      const total = 10000
+      var count = 0
+
+      var mqEmitterMongoDB = MongoEmitter({
+        url: url
+      })
+
+      const topic = 'test'
+
+      mqEmitterMongoDB.status.once('stream', function () {
+        mqEmitterMongoDB.on(topic, function (msg, cb) {
+          count++
+          cb()
+          if (count === total) {
+            t.end()
+            mqEmitterMongoDB.close()
+          }
+        })
+
+        for (let index = 0; index < total; index++) {
+          var payload = index
+          mqEmitterMongoDB.emit({ topic, payload })
+        }
+      })
+    })
+
     test('with database option', function (t) {
       t.plan(2)
 
@@ -132,6 +161,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
       mqEmitterMongoDB.status.once('stream', function () {
         t.ok(true, 'database started')
         mqEmitterMongoDB.close()
+        console.timeEnd('test')
       })
     })
   })

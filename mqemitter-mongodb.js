@@ -80,7 +80,7 @@ function MQEmitterMongoDB (opts) {
 
   var oldEmit = MQEmitter.prototype.emit
 
-  this._waiting = {}
+  this._waiting = new Map()
 
   var failures = 0
 
@@ -137,9 +137,9 @@ function MQEmitterMongoDB (opts) {
       oldEmit.call(that, obj, cb)
 
       const id = obj._id.toString()
-      if (that._waiting[id]) {
-        nextTick(that._waiting[id])
-        delete that._waiting[id]
+      if (that._waiting.has(id)) {
+        nextTick(that._waiting.get(id))
+        that._waiting.delete(id)
       }
     }
   }
@@ -206,7 +206,7 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
           }
         }
 
-        that._waiting[id.toString()] = cb
+        that._waiting.set(id.toString(), cb)
       }
     })
   }
