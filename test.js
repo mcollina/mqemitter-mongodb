@@ -79,10 +79,9 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     })
 
     test('leak test', function (t) {
-      const total = 2000
+      const total = 10000
       const topic = 'test'
 
-      var emitted = 0
       var received = 0
 
       var mqEmitterMongoDB = MongoEmitter({
@@ -107,14 +106,9 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
           cb()
         })
 
-        function emitPacket () {
-          if (emitted < total) {
-            var payload = emitted++
-            mqEmitterMongoDB.emit({ topic, payload }, emitPacket)
-          }
+        for (let payload = 0; payload < total; payload++) {
+          mqEmitterMongoDB.emit({topic, payload});
         }
-
-        emitPacket()
       })
     })
 
