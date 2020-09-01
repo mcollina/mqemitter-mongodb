@@ -150,6 +150,7 @@ function MQEmitterMongoDB (opts) {
 
 inherits(MQEmitterMongoDB, MQEmitter)
 
+// returns the index of the packet in _queue
 MQEmitterMongoDB.prototype._findNext = function(id) {
   for (var i = 0, len = this._queue.length; i < len; i++) {
     if(this._queue[i]._id.toString() === id) {
@@ -160,23 +161,24 @@ MQEmitterMongoDB.prototype._findNext = function(id) {
   return -1
 }
 
-MQEmitterMongoDB.prototype._emitFirst = function(cb) {
+// emits the first packet in the queue
+MQEmitterMongoDB.prototype._emitFirst = function() {
   var obj = this._queue.shift()
-  cb = cb || noop
+  // updates lastId
   this._lastId = obj._id
+  // once done check if there are other packets to emit
   this._oldEmit.call(this, obj, this._checkDone.bind(this))
   const id = obj._id.toString()
+  // checks for waiting callbacks
   if (this._waiting.has(id)) {
     nextTick(this._waiting.get(id))
     this._waiting.delete(id)
   }
 }
 
-
+// checks if the first packet in the queue is processed (done) if so it emit it
 MQEmitterMongoDB.prototype._checkDone = function() {
-  const queue = this._queue
-
-  if(queue[0] && queue[0]._done) {
+  if(this._queue[0] && this._queue[0]._done) {
     this._emitFirst()
   }
 }
