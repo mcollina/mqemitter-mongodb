@@ -139,8 +139,7 @@ function MQEmitterMongoDB (opts) {
         that._emitFirst(cb)
         that._checkDone()
       } else if (next > 0) {
-        next = that._queue[next]
-        next._done = true
+        that._queue[next]._done = true
         cb() // TODO: is this correct?
       }
     }
