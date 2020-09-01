@@ -136,8 +136,7 @@ function MQEmitterMongoDB (opts) {
       failures = 0
       var next = that._findNext(obj._id.toString())
       if(next === 0) {
-        that._queue.shift()
-        that._emitPacket(obj, cb)
+        that._emitFirst(cb)
         that._checkDone()
       } else if (next > 0) {
         next = that._queue[next]
@@ -163,7 +162,9 @@ MQEmitterMongoDB.prototype._findNext = function(id) {
   return -1
 }
 
-MQEmitterMongoDB.prototype._emitPacket = function(obj, cb) {
+MQEmitterMongoDB.prototype._emitFirst = function(cb) {
+  var obj = this._queue.shift()
+  cb = cb || obj._cb
   this._lastId = obj._id
   this._oldEmit.call(this, obj, cb)
   const id = obj._id.toString()
@@ -178,8 +179,7 @@ MQEmitterMongoDB.prototype._checkDone = function() {
   const queue = this._queue
 
   while(queue[0] && queue[0]._done) {
-    const obj = queue.shift()
-    this._emitPacket(obj, obj._cb)
+    this._emitFirst()
   }
 }
 
