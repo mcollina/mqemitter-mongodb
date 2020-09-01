@@ -141,8 +141,7 @@ function MQEmitterMongoDB (opts) {
       } else if (next > 0) {
         next = that._queue[next]
         next._done = true
-        next._cb = cb
-        cb() // without this the process never continue
+        cb() // TODO: is this correct?
       }
     }
   }
@@ -164,7 +163,7 @@ MQEmitterMongoDB.prototype._findNext = function(id) {
 
 MQEmitterMongoDB.prototype._emitFirst = function(cb) {
   var obj = this._queue.shift()
-  cb = cb || obj._cb
+  cb = cb || noop
   this._lastId = obj._id
   this._oldEmit.call(this, obj, cb)
   const id = obj._id.toString()
