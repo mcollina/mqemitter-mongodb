@@ -107,7 +107,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
         })
 
         for (let payload = 0; payload < total; payload++) {
-          mqEmitterMongoDB.emit({topic, payload});
+          mqEmitterMongoDB.emit({ topic, payload })
         }
       })
     })
