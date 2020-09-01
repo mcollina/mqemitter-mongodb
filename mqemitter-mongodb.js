@@ -139,6 +139,7 @@ function MQEmitterMongoDB (opts) {
         that._queue[index]._done = true
         that._checkDone()
       } else {
+        // in a cluster env we will not have all packets in our queue so simply emit it
         that._emitPacket(obj)
       }
 
