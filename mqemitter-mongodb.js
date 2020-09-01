@@ -134,10 +134,9 @@ function MQEmitterMongoDB (opts) {
 
       that._started = true
       failures = 0
-      var next = that._findNext(obj._id.toString())
-      if(next >= 0) {
-        next = that._queue[next]
-        next._done = true
+      const index = that._findNext(obj._id.toString())
+      if(index >= 0) {
+        that._queue[index]._done = true
         that._checkDone()
       }
 
