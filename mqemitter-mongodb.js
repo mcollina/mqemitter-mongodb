@@ -135,13 +135,14 @@ function MQEmitterMongoDB (opts) {
       that._started = true
       failures = 0
       var next = that._findNext(obj._id.toString())
-      if(next === 0) {
-        that._emitFirst(cb)
+      if(next >= 0) {
+        next = that._queue[next]
+        next._done = true
         that._checkDone()
-      } else if (next > 0) {
-        that._queue[next]._done = true
-        cb() // TODO: is this correct?
       }
+
+      // process next
+      cb()
     }
   }
 
@@ -164,7 +165,7 @@ MQEmitterMongoDB.prototype._emitFirst = function(cb) {
   var obj = this._queue.shift()
   cb = cb || noop
   this._lastId = obj._id
-  this._oldEmit.call(this, obj, cb)
+  this._oldEmit.call(this, obj, this._checkDone.bind(this))
   const id = obj._id.toString()
   if (this._waiting.has(id)) {
     nextTick(this._waiting.get(id))
@@ -176,7 +177,7 @@ MQEmitterMongoDB.prototype._emitFirst = function(cb) {
 MQEmitterMongoDB.prototype._checkDone = function() {
   const queue = this._queue
 
-  while(queue[0] && queue[0]._done) {
+  if(queue[0] && queue[0]._done) {
     this._emitFirst()
   }
 }
