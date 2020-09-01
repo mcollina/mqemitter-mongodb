@@ -135,7 +135,6 @@ function MQEmitterMongoDB (opts) {
       that._started = true
       failures = 0
       var next = that._findNext(obj._id.toString())
-      console.log(next)
       if(next === 0) {
         that._queue.shift()
         that._emitPacket(obj, cb)
