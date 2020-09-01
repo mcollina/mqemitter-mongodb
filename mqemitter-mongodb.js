@@ -138,6 +138,8 @@ function MQEmitterMongoDB (opts) {
       if(index >= 0) {
         that._queue[index]._done = true
         that._checkDone()
+      } else {
+        that._emitPacket(obj)
       }
 
       // process next
@@ -161,9 +163,9 @@ MQEmitterMongoDB.prototype._findNext = function(id) {
   return -1
 }
 
-// emits the first packet in the queue
-MQEmitterMongoDB.prototype._emitFirst = function() {
-  var obj = this._queue.shift()
+// emits a packet if specified or the first packet in the queue
+MQEmitterMongoDB.prototype._emitPacket = function(obj) {
+  var obj = obj || this._queue.shift()
   // updates lastId
   this._lastId = obj._id
   // once done check if there are other packets to emit
@@ -179,7 +181,7 @@ MQEmitterMongoDB.prototype._emitFirst = function() {
 // checks if the first packet in the queue is processed (done) if so it emit it
 MQEmitterMongoDB.prototype._checkDone = function() {
   if(this._queue[0] && this._queue[0]._done) {
-    this._emitFirst()
+    this._emitPacket()
   }
 }
 
