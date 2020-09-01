@@ -78,9 +78,10 @@ function MQEmitterMongoDB (opts) {
     })
   }
 
-  var oldEmit = MQEmitter.prototype.emit
+  that._oldEmit = MQEmitter.prototype.emit
 
   this._waiting = new Map()
+  this._queue = [];
 
   var failures = 0
 
@@ -133,13 +134,17 @@ function MQEmitterMongoDB (opts) {
 
       that._started = true
       failures = 0
-      that._lastId = obj._id
-      oldEmit.call(that, obj, cb)
-
-      const id = obj._id.toString()
-      if (that._waiting.has(id)) {
-        nextTick(that._waiting.get(id))
-        that._waiting.delete(id)
+      var next = that._findNext(obj._id.toString())
+      console.log(next)
+      if(next === 0) {
+        that._queue.shift()
+        that._emitPacket(obj, cb)
+        that._checkDone()
+      } else if (next > 0) {
+        next = that._queue[next]
+        next._done = true
+        next._cb = cb
+        cb() // without this the process never continue
       }
     }
   }
@@ -148,6 +153,36 @@ function MQEmitterMongoDB (opts) {
 }
 
 inherits(MQEmitterMongoDB, MQEmitter)
+
+MQEmitterMongoDB.prototype._findNext = function(id) {
+  for (var i = 0, len = this._queue.length; i < len; i++) {
+    if(this._queue[i]._id.toString() === id) {
+      return i
+    }    
+  }
+
+  return -1
+}
+
+MQEmitterMongoDB.prototype._emitPacket = function(obj, cb) {
+  this._lastId = obj._id
+  this._oldEmit.call(this, obj, cb)
+  const id = obj._id.toString()
+  if (this._waiting.has(id)) {
+    nextTick(this._waiting.get(id))
+    this._waiting.delete(id)
+  }
+}
+
+
+MQEmitterMongoDB.prototype._checkDone = function() {
+  const queue = this._queue
+
+  while(queue[0] && queue[0]._done) {
+    const obj = queue.shift()
+    this._emitPacket(obj, obj._cb)
+  }
+}
 
 MQEmitterMongoDB.prototype.emit = function (obj, cb) {
   var that = this
@@ -163,6 +198,10 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
       cb(err)
     }
   } else {
+    const id = new mongodb.ObjectID(obj._id)
+    obj._id = id
+    that._queue.push(obj)
+
     this._collection.insertOne(obj, function (err, res) {
       if (cb) {
         if (err) {
@@ -170,8 +209,6 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
           return
         }
 
-        var obj = res.ops[0]
-        var id = obj._id
         var lastId = that._lastId
         var t1 = id.getTimestamp().getTime()
         var t2 = lastId.getTimestamp().getTime()
