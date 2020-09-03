@@ -22,6 +22,7 @@ function MQEmitterMongoDB (opts) {
 
   var url = opts.url || 'mongodb://127.0.0.1/mqemitter'
   this.status = new EE()
+  this.status.setMaxListeners(0)
 
   this._opts = opts
 
