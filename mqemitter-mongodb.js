@@ -95,14 +95,19 @@ function MQEmitterMongoDB (opts) {
         that.status.emit('error', err)
       }
 
-      that._lastId = doc ? doc._id : new mongodb.ObjectID();
+      that._lastObj = doc ? doc : { _id: new mongodb.ObjectID() };
+
+      if(!that._lastObj._stringId) {
+        that._lastObj._stringId = that._lastObj._id.toString()
+      }
+
       start()
     });  
   }
 
   function start () {
 
-    that._stream = that._collection.find({ _id: { $gt: that._lastId }}, {
+    that._stream = that._collection.find({ _id: { $gt: that._lastObj._id }}, {
       tailable: true,
       timeout: false,
       awaitData: true,
@@ -134,7 +139,7 @@ function MQEmitterMongoDB (opts) {
 
       that._started = true
       failures = 0
-      const index = that._findNext(obj._id.toString())
+      const index = that._findNext(obj._stringId)
       if(index >= 0) {
         that._queue[index]._done = true
         that._checkDone()
@@ -156,7 +161,7 @@ inherits(MQEmitterMongoDB, MQEmitter)
 // returns the index of the packet in _queue
 MQEmitterMongoDB.prototype._findNext = function(id) {
   for (var i = 0, len = this._queue.length; i < len; i++) {
-    if(this._queue[i]._id.toString() === id) {
+    if(this._queue[i]._stringId === id) {
       return i
     }    
   }
@@ -168,14 +173,13 @@ MQEmitterMongoDB.prototype._findNext = function(id) {
 MQEmitterMongoDB.prototype._emitPacket = function(obj) {
   var obj = obj || this._queue.shift()
   // updates lastId
-  this._lastId = obj._id
+  this._lastObj = obj
   // once done check if there are other packets to emit
   this._oldEmit.call(this, obj, this._checkDone.bind(this))
-  const id = obj._id.toString()
   // checks for waiting callbacks
-  if (this._waiting.has(id)) {
-    nextTick(this._waiting.get(id))
-    this._waiting.delete(id)
+  if (this._waiting.has(obj._stringId)) {
+    nextTick(this._waiting.get(obj._stringId))
+    this._waiting.delete(obj._stringId)
   }
 }
 
@@ -202,6 +206,7 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
   } else {
     const id = new mongodb.ObjectID(obj._id)
     obj._id = id
+    obj._stringId = id.toString()
     that._queue.push(obj)
 
     this._collection.insertOne(obj, function (err, res) {
@@ -211,9 +216,9 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
           return
         }
 
-        var lastId = that._lastId
+        var lastObj = that._lastObj
         var t1 = id.getTimestamp().getTime()
-        var t2 = lastId.getTimestamp().getTime()
+        var t2 = lastObj._id.getTimestamp().getTime()
 
         // we need to check only the date part
         if (t1 < t2) {
@@ -221,8 +226,8 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
           return
         } else if (t1 === t2) {
           // we need to dig deeper and check the ObjectId counter
-          var b1 = Buffer.from(id.toString(), 'hex')
-          var b2 = Buffer.from(lastId.toString(), 'hex')
+          var b1 = Buffer.from(obj._stringId, 'hex')
+          var b2 = Buffer.from(lastObj._stringId, 'hex')
 
           // if they are not equals we call the callback
           // immediately to avoid leaks
@@ -245,7 +250,7 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
           }
         }
 
-        that._waiting.set(id.toString(), cb)
+        that._waiting.set(obj._stringId, cb)
       }
     })
   }

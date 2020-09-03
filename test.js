@@ -9,8 +9,6 @@ var clean = require('mongo-clean')
 var dbname = 'mqemitter-test'
 var url = 'mongodb://127.0.0.1/' + dbname
 
-console.time('test')
-
 MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1 }, function (err, client) {
   if (err) {
     throw err
@@ -67,7 +65,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
           if (++started === 1) {
             mqEmitterMongoDB.emit({ topic: 'last/packet', payload: 'I\'m the last', _id: lastId }, mqEmitterMongoDB.close.bind(mqEmitterMongoDB, cb))
           } else {
-            t.equal(mqEmitterMongoDB._lastId.toString(), lastId.toString(), 'Should fetch last Id')
+            t.equal(mqEmitterMongoDB._lastObj._stringId, lastId.toString(), 'Should fetch last Id')
             mqEmitterMongoDB.close(cb)
           }
         })
@@ -75,40 +73,6 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
 
       startInstance(function () {
         startInstance(t.end.bind(t))
-      })
-    })
-
-    test('leak test', function (t) {
-      const total = 10000
-      const topic = 'test'
-
-      var received = 0
-
-      var mqEmitterMongoDB = MongoEmitter({
-        url: url
-      })
-
-      mqEmitterMongoDB.status.once('stream', function () {
-        mqEmitterMongoDB.on(topic, function (msg, cb) {
-          var fail = false
-          if (received !== msg.payload) {
-            t.fail(`leak detected. Count: ${received} - Payload: ${msg.payload}`)
-            fail = true
-          }
-
-          received++
-
-          if (fail || received === total) {
-            t.end()
-            mqEmitterMongoDB.close()
-          }
-
-          cb()
-        })
-
-        for (let payload = 0; payload < total; payload++) {
-          mqEmitterMongoDB.emit({ topic, payload })
-        }
       })
     })
 
@@ -168,7 +132,6 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
       mqEmitterMongoDB.status.once('stream', function () {
         t.ok(true, 'database started')
         mqEmitterMongoDB.close()
-        console.timeEnd('test')
       })
     })
   })
