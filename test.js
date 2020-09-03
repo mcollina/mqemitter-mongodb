@@ -3,7 +3,7 @@
 var mongodb = require('mongodb')
 var MongoClient = mongodb.MongoClient
 var MongoEmitter = require('./')
-var test = require('tape').test
+var { test } = require('tape')
 var abstractTests = require('mqemitter/abstractTest.js')
 var clean = require('mongo-clean')
 var dbname = 'mqemitter-test'
@@ -65,7 +65,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
           if (++started === 1) {
             mqEmitterMongoDB.emit({ topic: 'last/packet', payload: 'I\'m the last', _id: lastId }, mqEmitterMongoDB.close.bind(mqEmitterMongoDB, cb))
           } else {
-            t.equal(mqEmitterMongoDB._lastId.toString(), lastId.toString(), 'Should fetch last Id')
+            t.equal(mqEmitterMongoDB._lastObj._stringId, lastId.toString(), 'Should fetch last Id')
             mqEmitterMongoDB.close(cb)
           }
         })
