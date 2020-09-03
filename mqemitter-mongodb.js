@@ -168,8 +168,10 @@ MQEmitterMongoDB.prototype._bulkInsert = function() {
       bulk.insert(p.obj)
     }
 
-    bulk.execute(function () {
-      while (onEnd.length) onEnd.shift().call()
+    bulk.execute(function (err) {
+      for (let i = 0, len = onEnd.length; i < len; i++) {
+        onEnd.shift().call(that, err)
+      }
       that._executingBulk = false
       that._bulkInsert()
     })
