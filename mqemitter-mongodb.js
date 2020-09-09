@@ -52,6 +52,7 @@ function MQEmitterMongoDB (opts) {
     })
   }
 
+  this._hasStream = false
   this._started = false
 
   function waitStartup () {
@@ -107,12 +108,10 @@ function MQEmitterMongoDB (opts) {
   }
 
   function start () {
-
     that._stream = that._collection.find({ _id: { $gt: that._lastObj._id }}, {
       tailable: true,
       timeout: false,
-      awaitData: true,
-      numberOfRetries: -1
+      awaitData: true
     })
 
     pump(that._stream, through.obj(process), function () {
@@ -126,7 +125,9 @@ function MQEmitterMongoDB (opts) {
       setTimeout(start, 100)
     })
 
+    that._hasStream = true
     that.status.emit('stream')
+    that._bulkInsert()
 
     function process (obj, enc, cb) {
       if (that.closed) {
@@ -228,7 +229,10 @@ MQEmitterMongoDB.prototype._insertDoc = function(obj, cb) {
   }
 
   this._queue.push({ obj, cb: onInsert })
-  this._bulkInsert()
+  
+  if (this._hasStream) {
+    this._bulkInsert()
+  }
 }
 
 MQEmitterMongoDB.prototype.emit = function (obj, cb) {
