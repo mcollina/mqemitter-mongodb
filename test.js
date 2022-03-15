@@ -93,19 +93,17 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     })
 
     test('with mongodb options', function (t) {
-      t.plan(3)
+      t.plan(2)
 
       var mqEmitterMongoDB = MongoEmitter({
         url: url,
         mongo: {
-          keepAlive: false,
-          poolSize: 9
+          keepAlive: false
         }
       })
 
       mqEmitterMongoDB.status.once('stream', function () {
-        t.equal(mqEmitterMongoDB._db.topology.s.options.keepAlive, false)
-        t.equal(mqEmitterMongoDB._db.topology.s.options.poolSize, 9)
+        t.equal(mqEmitterMongoDB._db.s.client.s.options.keepAlive, false)
         t.ok(true, 'database name is default db name')
         t.end()
         mqEmitterMongoDB.close()
@@ -124,13 +122,10 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
       })
 
       mqEmitterMongoDB.status.on('error', function (err) {
-        if (err.message !== 'Topology is closed, please connect') {
+        t.ok(true, 'error event emitted')
+        if (err.message !== 'MongoClient must be connected to perform this operation') {
           t.fail('throws error')
         }
-      })
-
-      mqEmitterMongoDB.status.once('stream', function () {
-        t.ok(true, 'database started')
         mqEmitterMongoDB.close()
       })
     })

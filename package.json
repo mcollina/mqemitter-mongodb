@@ -4,7 +4,7 @@
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
-    "test": "standard && tape test.js | faucet",
+    "test": "standard && node test.js | faucet",
     "mongo": "docker run -p 27017:27017 mongo:4"
   },
   "pre-commit": "test",
@@ -22,11 +22,11 @@
     "mongo-clean": "^2.0.0",
     "pre-commit": "^1.0.7",
     "standard": "^15.0.0",
-    "tape": "^5.0.1"
+    "tape": "^5.5.2"
   },
   "dependencies": {
     "inherits": "^2.0.3",
-    "mongodb": "^3.6.1",
+    "mongodb": "^4.4.1",
     "mqemitter": "^4.4.0",
     "pump": "^3.0.0",
     "through2": "^4.0.2"
