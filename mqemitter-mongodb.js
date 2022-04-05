@@ -92,7 +92,8 @@ function MQEmitterMongoDB (opts) {
   this._executingBulk = false
   var failures = 0
 
-  function setLast() {
+  function setLast() {    
+    try {
     that._collection
       .find({}, { timeout: false })
       .sort({ $natural: -1 })
@@ -110,9 +111,13 @@ function MQEmitterMongoDB (opts) {
 
         start()
       });
+    } catch (error) {
+      that.status.emit('error', error)
+    }
   }
 
   function start() {
+    if (that.closed) { return }
     that._stream = toStream(that._collection.find({ _id: { $gt: that._lastObj._id } }, {
       tailable: true,
       timeout: false,
