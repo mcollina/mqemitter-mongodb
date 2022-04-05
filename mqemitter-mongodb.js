@@ -61,7 +61,7 @@ function MQEmitterMongoDB (opts) {
 
   function waitStartup() {
     that._collection = that._db.collection(opts.collection)
-    try {
+    
       that._collection.isCapped(function (err, capped) {
         if (that.closed) { return }
 
@@ -83,10 +83,6 @@ function MQEmitterMongoDB (opts) {
           setLast()
         }
       })
-
-    } catch (error) {
-      that.status.emit('error', error)
-    }
   }
 
   const oldEmit = MQEmitter.prototype.emit
