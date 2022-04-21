@@ -21,7 +21,7 @@
     "faucet": "0.0.1",
     "mongo-clean": "^2.0.0",
     "pre-commit": "^1.0.7",
-    "standard": "^16.0.4",
+    "standard": "^17.0.0",
     "tape": "^5.5.2"
   },
   "dependencies": {
