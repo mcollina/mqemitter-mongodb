@@ -18,7 +18,7 @@
     "node": ">=4.0.0"
   },
   "devDependencies": {
-    "faucet": "0.0.1",
+    "faucet": "0.0.3",
     "mongo-clean": "^2.0.0",
     "pre-commit": "^1.0.7",
     "standard": "^16.0.4",
