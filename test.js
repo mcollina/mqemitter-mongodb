@@ -1,20 +1,20 @@
 'use strict'
 
-var mongodb = require('mongodb')
-var MongoClient = mongodb.MongoClient
-var MongoEmitter = require('./')
-var { test } = require('tape')
-var abstractTests = require('mqemitter/abstractTest.js')
-var clean = require('mongo-clean')
-var dbname = 'mqemitter-test'
-var url = 'mongodb://127.0.0.1/' + dbname
+const mongodb = require('mongodb')
+const MongoClient = mongodb.MongoClient
+const MongoEmitter = require('./')
+const { test } = require('tape')
+const abstractTests = require('mqemitter/abstractTest.js')
+const clean = require('mongo-clean')
+const dbname = 'mqemitter-test'
+const url = 'mongodb://127.0.0.1/' + dbname
 
 MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1 }, function (err, client) {
   if (err) {
     throw err
   }
 
-  var db = client.db(dbname)
+  const db = client.db(dbname)
 
   clean(db, function (err) {
     if (err) {
@@ -30,14 +30,14 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
 
         return MongoEmitter(opts)
       },
-      test: test
+      test
     })
 
     test('with default database name', function (t) {
       t.plan(2)
 
-      var mqEmitterMongoDB = MongoEmitter({
-        url: url
+      const mqEmitterMongoDB = MongoEmitter({
+        url
       })
 
       mqEmitterMongoDB.status.once('stream', function () {
@@ -51,12 +51,12 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     test('should fetch last packet id', function (t) {
       t.plan(5)
 
-      var started = 0
-      var lastId = new mongodb.ObjectId()
+      let started = 0
+      const lastId = new mongodb.ObjectId()
 
       function startInstance (cb) {
-        var mqEmitterMongoDB = MongoEmitter({
-          url: url
+        const mqEmitterMongoDB = MongoEmitter({
+          url
         })
 
         mqEmitterMongoDB.status.once('stream', function () {
@@ -79,8 +79,8 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     test('with database option', function (t) {
       t.plan(2)
 
-      var mqEmitterMongoDB = MongoEmitter({
-        url: url,
+      const mqEmitterMongoDB = MongoEmitter({
+        url,
         database: 'test-custom-db-name'
       })
 
@@ -95,8 +95,8 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     test('with mongodb options', function (t) {
       t.plan(2)
 
-      var mqEmitterMongoDB = MongoEmitter({
-        url: url,
+      const mqEmitterMongoDB = MongoEmitter({
+        url,
         mongo: {
           keepAlive: false
         }
@@ -116,14 +116,14 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
 
       client.close(true)
 
-      var mqEmitterMongoDB = MongoEmitter({
-        url: url,
-        db: db
+      const mqEmitterMongoDB = MongoEmitter({
+        url,
+        db
       })
 
       mqEmitterMongoDB.status.on('error', function (err) {
         t.ok(true, 'error event emitted')
-        if (err.message !== 'MongoClient must be connected to perform this operation') {
+        if (err.message !== 'Client must be connected before running operations') {
           t.fail('throws error')
         }
         mqEmitterMongoDB.close()

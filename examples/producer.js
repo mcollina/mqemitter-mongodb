@@ -1,7 +1,7 @@
 'use strict'
 
-var mqemitter = require('../')
-var instance = mqemitter({
+const mqemitter = require('../')
+const instance = mqemitter({
   url: 'mongodb://localhost/aaa'
 })
 

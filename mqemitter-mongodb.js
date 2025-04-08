@@ -24,13 +24,13 @@ function MQEmitterMongoDB (opts) {
   opts.max = opts.max || 10000 // documents
   opts.collection = opts.collection || 'pubsub'
 
-  var url = opts.url || 'mongodb://127.0.0.1/mqemitter'
+  const url = opts.url || 'mongodb://127.0.0.1/mqemitter'
   this.status = new EE()
   this.status.setMaxListeners(0)
 
   this._opts = opts
 
-  var that = this
+  const that = this
 
   this._db = null
 
@@ -38,15 +38,15 @@ function MQEmitterMongoDB (opts) {
     that._db = opts.db
     setImmediate(waitStartup)
   } else {
-    var defaultOpts = { useNewUrlParser: true, useUnifiedTopology: true }
-    var mongoOpts = that._opts.mongo ? Object.assign(defaultOpts, that._opts.mongo) : defaultOpts
+    const defaultOpts = { useNewUrlParser: true, useUnifiedTopology: true }
+    const mongoOpts = that._opts.mongo ? Object.assign(defaultOpts, that._opts.mongo) : defaultOpts
     MongoClient.connect(url, mongoOpts, function (err, client) {
       if (err) {
         return that.status.emit('error', err)
       }
       /* eslint-disable */
-      var urlParsed = urlModule.parse(that._opts.url)
-      var databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined)
+      const urlParsed = urlModule.parse(that._opts.url);
+      let databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined);
       databaseName = databaseName.substr(databaseName.lastIndexOf('/') + 1)
 
       that._client = client
@@ -90,7 +90,7 @@ function MQEmitterMongoDB (opts) {
   this._waiting = new Map()
   this._queue = []
   this._executingBulk = false
-  var failures = 0
+  let failures = 0;
 
   function setLast() {    
     try {
@@ -171,10 +171,10 @@ MQEmitterMongoDB.prototype._bulkInsert = function () {
   const that = this
   if (!this._executingBulk && this._queue.length > 0) {
     this._executingBulk = true
-    var bulk = this._collection.initializeOrderedBulkOp()
+    const bulk = this._collection.initializeOrderedBulkOp();
 
     while (this._queue.length) {
-      var p = this._queue.shift()
+      const p = this._queue.shift();
       bulk.insert(p.obj)
     }
 
@@ -203,7 +203,7 @@ MQEmitterMongoDB.prototype.emit = function (obj, cb) {
     this.status.once('stream', this.emit.bind(this, obj, cb))
     return this
   } else if (this.closed) {
-    var err = new Error('MQEmitterMongoDB is closed')
+    const err = new Error('MQEmitterMongoDB is closed');
     if (cb) {
       cb(err)
     }
@@ -234,7 +234,7 @@ MQEmitterMongoDB.prototype.close = function (cb) {
 
   this.closed = true
 
-  var that = this
+  const that = this;
   MQEmitter.prototype.close.call(this, function () {
     if (that._opts.db) {
       cb()
