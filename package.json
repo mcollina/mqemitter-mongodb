@@ -18,19 +18,18 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=4.0.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@fastify/pre-commit": "^2.2.0",
     "eslint": "^9.24.0",
     "faucet": "0.0.4",
-    "mongo-clean": "^2.0.0",
     "neostandard": "^0.12.1",
     "tape": "^5.9.0"
   },
   "dependencies": {
     "inherits": "^2.0.4",
-    "mongodb": "^4.17.2",
+    "mongodb": "^6.15.0",
     "mqemitter": "^6.0.2",
     "pump": "^3.0.2",
     "through2": "^4.0.2"

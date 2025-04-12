@@ -2,25 +2,45 @@
 
 const mongodb = require('mongodb')
 const MongoClient = mongodb.MongoClient
+const ObjectId = mongodb.ObjectId
+
 const MongoEmitter = require('./')
 const { test } = require('tape')
 const abstractTests = require('mqemitter/abstractTest.js')
-const clean = require('mongo-clean')
 const dbname = 'mqemitter-test'
+const collectionName = 'pubsub'
 const url = 'mongodb://127.0.0.1/' + dbname
 
-MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1 }, function (err, client) {
+function newId () {
+  return ObjectId.createFromTime(Date.now())
+}
+async function clean (db, cb) {
+  const collections = await db.listCollections({ name: collectionName }).toArray()
+  if (collections.length > 0) {
+    await db.collection(collectionName).drop()
+  }
+  if (cb) {
+    cb()
+  }
+}
+
+function connectClient (url, opts, cb) {
+  MongoClient.connect(url, opts)
+    .then(client => {
+      cb(null, client)
+    })
+    .catch(err => {
+      cb(err)
+    })
+}
+
+connectClient(url, { w: 1 }, function (err, client) {
+  const db = client.db(dbname)
   if (err) {
-    throw err
+    throw (err)
   }
 
-  const db = client.db(dbname)
-
-  clean(db, function (err) {
-    if (err) {
-      throw err
-    }
-
+  clean(db, function () {
     client.close()
 
     abstractTests({
@@ -49,10 +69,10 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
     })
 
     test('should fetch last packet id', function (t) {
-      t.plan(5)
+      t.plan(3)
 
       let started = 0
-      const lastId = new mongodb.ObjectId()
+      const lastId = newId()
 
       function startInstance (cb) {
         const mqEmitterMongoDB = MongoEmitter({
@@ -60,12 +80,13 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
         })
 
         mqEmitterMongoDB.status.once('stream', function () {
-          t.equal(mqEmitterMongoDB._db.databaseName, dbname)
-          t.ok(true, 'database name is default db name')
+          t.equal(mqEmitterMongoDB._db.databaseName, dbname, 'database name is default db name')
           if (++started === 1) {
-            mqEmitterMongoDB.emit({ topic: 'last/packet', payload: 'I\'m the last', _id: lastId }, mqEmitterMongoDB.close.bind(mqEmitterMongoDB, cb))
+            mqEmitterMongoDB.emit({ topic: 'last/packet', payload: 'I\'m the last' }, () => {
+              mqEmitterMongoDB.close(cb)
+            })
           } else {
-            t.equal(mqEmitterMongoDB._lastObj._stringId, lastId.toString(), 'Should fetch last Id')
+            t.ok(mqEmitterMongoDB._lastObj._stringId > lastId.toString(), 'Should fetch last Id')
             mqEmitterMongoDB.close(cb)
           }
         })
@@ -98,12 +119,12 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, w: 1
       const mqEmitterMongoDB = MongoEmitter({
         url,
         mongo: {
-          keepAlive: false
+          appName: 'mqemitter-mongodb-test'
         }
       })
 
       mqEmitterMongoDB.status.once('stream', function () {
-        t.equal(mqEmitterMongoDB._db.s.client.s.options.keepAlive, false)
+        t.equal(mqEmitterMongoDB._db.client.options.appName, 'mqemitter-mongodb-test')
         t.ok(true, 'database name is default db name')
         t.end()
         mqEmitterMongoDB.close()

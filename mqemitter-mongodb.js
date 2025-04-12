@@ -3,6 +3,7 @@
 const urlModule = require('url')
 const mongodb = require('mongodb')
 const MongoClient = mongodb.MongoClient
+const ObjectId = mongodb.ObjectId
 const inherits = require('inherits')
 const MQEmitter = require('mqemitter')
 const through = require('through2')
@@ -12,6 +13,54 @@ const EE = require('events').EventEmitter
 
 function toStream (op) {
   return op.stream ? op.stream() : op
+}
+
+function newId () {
+  return ObjectId.createFromTime(Date.now())
+}
+
+function connectClient (url, opts, cb) {
+  MongoClient.connect(url, opts)
+    .then(client => {
+      cb(null, client)
+    })
+    .catch(err => {
+      cb(err)
+    })
+}
+
+// check if the collection exists and is capped
+// if not create it
+async function checkCollection (ctx, next) {
+  // ping to see if database is connected
+  try {
+    await ctx._db.command({ ping: 1 })
+  } catch (err) {
+    ctx.status.emit('error', err)
+    return
+  }
+  const collectionName = ctx._opts.collection
+  const collections = await ctx._db.listCollections({ name: collectionName }).toArray()
+  if (collections.length > 0) {
+    ctx._collection = ctx._db.collection(collectionName)
+    if (!await ctx._collection.isCapped()) {
+      // the collection is not capped, make it so
+      await ctx._db.command({
+        convertToCapped: collectionName,
+        size: ctx._opts.size,
+        max: ctx._opts.max
+      })
+    }
+  } else {
+    // collection does not exist yet create it
+    await ctx._db.createCollection(collectionName, {
+      capped: true,
+      size: ctx._opts.size,
+      max: ctx._opts.max
+    })
+    ctx._collection = ctx._db.collection(collectionName)
+  }
+  next()
 }
 
 function MQEmitterMongoDB (opts) {
@@ -38,15 +87,14 @@ function MQEmitterMongoDB (opts) {
     that._db = opts.db
     setImmediate(waitStartup)
   } else {
-    const defaultOpts = { useNewUrlParser: true, useUnifiedTopology: true }
+    const defaultOpts = { }
     const mongoOpts = that._opts.mongo ? Object.assign(defaultOpts, that._opts.mongo) : defaultOpts
-    MongoClient.connect(url, mongoOpts, function (err, client) {
+    connectClient(url, mongoOpts, function (err, client) {
       if (err) {
         return that.status.emit('error', err)
       }
-      /* eslint-disable */
-      const urlParsed = urlModule.parse(that._opts.url);
-      let databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined);
+      const urlParsed = new urlModule.URL(that._opts.url)
+      let databaseName = that._opts.database || (urlParsed.pathname ? urlParsed.pathname.substr(1) : undefined)
       databaseName = databaseName.substr(databaseName.lastIndexOf('/') + 1)
 
       that._client = client
@@ -59,30 +107,8 @@ function MQEmitterMongoDB (opts) {
   this._hasStream = false
   this._started = false
 
-  function waitStartup() {
-    that._collection = that._db.collection(opts.collection)
-    
-      that._collection.isCapped(function (err, capped) {
-        if (that.closed) { return }
-
-        if (err) {
-          // if it errs here, the collection might not exist
-          that._db.createCollection(opts.collection, {
-            capped: true,
-            size: opts.size,
-            max: opts.max
-          }, setLast)
-        } else if (!capped) {
-          // the collection is not capped, make it so
-          that._db.command({
-            convertToCapped: opts.collection,
-            size: opts.size,
-            max: opts.max
-          }, setLast)
-        } else {
-          setLast()
-        }
-      })
+  function waitStartup () {
+    checkCollection(that, setLast)
   }
 
   const oldEmit = MQEmitter.prototype.emit
@@ -90,35 +116,32 @@ function MQEmitterMongoDB (opts) {
   this._waiting = new Map()
   this._queue = []
   this._executingBulk = false
-  let failures = 0;
+  let failures = 0
 
-  function setLast() {    
+  async function setLast () {
     try {
-    that._collection
-      .find({}, { timeout: false })
-      .sort({ $natural: -1 })
-      .limit(1)
-      .next(function (err, doc) {
-        if (err) {
-          that.status.emit('error', err)
-        }
+      const results = await that._collection
+        .find({}, { timeout: false })
+        .sort({ $natural: -1 })
+        .limit(1)
+        .toArray()
+      const doc = results[0]
+      that._lastObj = doc || { _id: newId() }
 
-        that._lastObj = doc ? doc : { _id: new mongodb.ObjectID() };
+      if (!that._lastObj._stringId) {
+        that._lastObj._stringId = that._lastObj._id.toString()
+      }
 
-        if (!that._lastObj._stringId) {
-          that._lastObj._stringId = that._lastObj._id.toString()
-        }
-
-        start()
-      });
+      start()
     } catch (error) {
       that.status.emit('error', error)
     }
   }
 
-  function start() {
+  async function start () {
     if (that.closed) { return }
-    that._stream = toStream(that._collection.find({ _id: { $gt: that._lastObj._id } }, {
+
+    that._stream = toStream(await that._collection.find({ _id: { $gt: that._lastObj._id } }, {
       tailable: true,
       timeout: false,
       awaitData: true
@@ -139,7 +162,7 @@ function MQEmitterMongoDB (opts) {
     that.status.emit('stream')
     that._bulkInsert()
 
-    function process(obj, enc, cb) {
+    function process (obj, enc, cb) {
       if (that.closed) {
         return cb()
       }
@@ -167,21 +190,19 @@ function MQEmitterMongoDB (opts) {
 
 inherits(MQEmitterMongoDB, MQEmitter)
 
-MQEmitterMongoDB.prototype._bulkInsert = function () {
-  const that = this
+MQEmitterMongoDB.prototype._bulkInsert = async function () {
   if (!this._executingBulk && this._queue.length > 0) {
     this._executingBulk = true
-    const bulk = this._collection.initializeOrderedBulkOp();
+    const operations = []
 
     while (this._queue.length) {
-      const p = this._queue.shift();
-      bulk.insert(p.obj)
+      const p = this._queue.shift()
+      operations.push({ insertOne: p.obj })
     }
 
-    bulk.execute(function (err) {
-      that._executingBulk = false
-      that._bulkInsert()
-    })
+    await this._collection.bulkWrite(operations)
+    this._executingBulk = false
+    this._bulkInsert()
   }
 }
 
@@ -197,19 +218,16 @@ MQEmitterMongoDB.prototype._insertDoc = function (obj, cb) {
 }
 
 MQEmitterMongoDB.prototype.emit = function (obj, cb) {
-
   if (!this.closed && !this._stream) {
     // actively poll if stream is available
     this.status.once('stream', this.emit.bind(this, obj, cb))
     return this
   } else if (this.closed) {
-    const err = new Error('MQEmitterMongoDB is closed');
+    const err = new Error('MQEmitterMongoDB is closed')
     if (cb) {
       cb(err)
     }
   } else {
-    obj._id = new mongodb.ObjectID(obj._id)
-    obj._stringId = obj._id.toString()
     this._insertDoc(obj, cb)
   }
 
@@ -234,18 +252,19 @@ MQEmitterMongoDB.prototype.close = function (cb) {
 
   this.closed = true
 
-  const that = this;
-  MQEmitter.prototype.close.call(this, function () {
+  const that = this
+  MQEmitter.prototype.close.call(this, async function () {
     if (that._opts.db) {
       cb()
     } else {
-      that._client.close(cb)
+      await that._client.close()
+      cb()
     }
   })
 
   return this
 }
 
-function noop() { }
+function noop () { }
 
 module.exports = MQEmitterMongoDB
