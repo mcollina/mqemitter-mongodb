@@ -20,17 +20,17 @@ async function clean (db, cb) {
     await db.collection(collectionName).drop()
   }
   if (cb) {
-    cb()
+    process.nextTick(cb)
   }
 }
 
 function connectClient (url, opts, cb) {
   MongoClient.connect(url, opts)
     .then(client => {
-      cb(null, client)
+      process.nextTick(cb, null, client)
     })
     .catch(err => {
-      cb(err)
+      process.nextTick(cb, err)
     })
 }
 

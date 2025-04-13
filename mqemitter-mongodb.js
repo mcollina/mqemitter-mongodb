@@ -22,10 +22,10 @@ function newId () {
 function connectClient (url, opts, cb) {
   MongoClient.connect(url, opts)
     .then(client => {
-      cb(null, client)
+      process.nextTick(cb, null, client)
     })
     .catch(err => {
-      cb(err)
+      process.nextTick(cb, err)
     })
 }
 
@@ -60,7 +60,7 @@ async function checkCollection (ctx, next) {
     })
     ctx._collection = ctx._db.collection(collectionName)
   }
-  next()
+  process.nextTick(next)
 }
 
 function MQEmitterMongoDB (opts) {
@@ -132,7 +132,7 @@ function MQEmitterMongoDB (opts) {
         that._lastObj._stringId = that._lastObj._id.toString()
       }
 
-      start()
+      await start()
     } catch (error) {
       that.status.emit('error', error)
     }
@@ -258,7 +258,7 @@ MQEmitterMongoDB.prototype.close = function (cb) {
       cb()
     } else {
       await that._client.close()
-      cb()
+      process.nextTick(cb)
     }
   })
 
