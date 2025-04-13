@@ -24,13 +24,12 @@
     "@fastify/pre-commit": "^2.2.0",
     "eslint": "^9.24.0",
     "faucet": "0.0.4",
-    "neostandard": "^0.12.1",
-    "tape": "^5.9.0"
+    "neostandard": "^0.12.1"
   },
   "dependencies": {
     "inherits": "^2.0.4",
     "mongodb": "^6.15.0",
-    "mqemitter": "^6.0.2",
+    "mqemitter": "^7.0.0",
     "pump": "^3.0.2",
     "through2": "^4.0.2"
   }

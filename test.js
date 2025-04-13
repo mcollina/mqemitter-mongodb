@@ -5,7 +5,7 @@ const MongoClient = mongodb.MongoClient
 const ObjectId = mongodb.ObjectId
 
 const MongoEmitter = require('./')
-const { test } = require('tape')
+const { test } = require('node:test')
 const abstractTests = require('mqemitter/abstractTest.js')
 const dbname = 'mqemitter-test'
 const collectionName = 'pubsub'
@@ -53,22 +53,24 @@ connectClient(url, { w: 1 }, function (err, client) {
       test
     })
 
-    test('with default database name', function (t) {
+    test('with default database name', async function (t) {
       t.plan(2)
 
-      const mqEmitterMongoDB = MongoEmitter({
-        url
-      })
+      await new Promise((resolve) => {
+        const mqEmitterMongoDB = MongoEmitter({
+          url
+        })
 
-      mqEmitterMongoDB.status.once('stream', function () {
-        t.equal(mqEmitterMongoDB._db.databaseName, dbname)
-        t.ok(true, 'database name is default db name')
-        t.end()
-        mqEmitterMongoDB.close()
+        mqEmitterMongoDB.status.once('stream', async function () {
+          t.assert.equal(mqEmitterMongoDB._db.databaseName, dbname)
+          t.assert.ok(true, 'database name is default db name')
+          mqEmitterMongoDB.close()
+          resolve()
+        })
       })
     })
 
-    test('should fetch last packet id', function (t) {
+    test('should fetch last packet id', async function (t) {
       t.plan(3)
 
       let started = 0
@@ -80,74 +82,83 @@ connectClient(url, { w: 1 }, function (err, client) {
         })
 
         mqEmitterMongoDB.status.once('stream', function () {
-          t.equal(mqEmitterMongoDB._db.databaseName, dbname, 'database name is default db name')
+          t.assert.equal(mqEmitterMongoDB._db.databaseName, dbname, 'database name is default db name')
           if (++started === 1) {
             mqEmitterMongoDB.emit({ topic: 'last/packet', payload: 'I\'m the last' }, () => {
               mqEmitterMongoDB.close(cb)
             })
           } else {
-            t.ok(mqEmitterMongoDB._lastObj._stringId > lastId.toString(), 'Should fetch last Id')
+            t.assert.ok(mqEmitterMongoDB._lastObj._stringId > lastId.toString(), 'Should fetch last Id')
             mqEmitterMongoDB.close(cb)
           }
         })
       }
 
-      startInstance(function () {
-        startInstance(t.end.bind(t))
+      await new Promise((resolve) => {
+        startInstance(function () {
+          startInstance(resolve)
+        })
       })
     })
 
-    test('with database option', function (t) {
+    test('with database option', async function (t) {
       t.plan(2)
 
-      const mqEmitterMongoDB = MongoEmitter({
-        url,
-        database: 'test-custom-db-name'
-      })
+      await new Promise((resolve) => {
+        const mqEmitterMongoDB = MongoEmitter({
+          url,
+          database: 'test-custom-db-name'
+        })
 
-      mqEmitterMongoDB.status.once('stream', function () {
-        t.equal(mqEmitterMongoDB._db.databaseName, 'test-custom-db-name')
-        t.ok(true, 'database name is custom db name')
-        t.end()
-        mqEmitterMongoDB.close()
+        mqEmitterMongoDB.status.once('stream', function () {
+          t.assert.equal(mqEmitterMongoDB._db.databaseName, 'test-custom-db-name')
+          t.assert.ok(true, 'database name is custom db name')
+          mqEmitterMongoDB.close()
+          resolve()
+        })
       })
     })
 
-    test('with mongodb options', function (t) {
+    test('with mongodb options', async function (t) {
       t.plan(2)
 
-      const mqEmitterMongoDB = MongoEmitter({
-        url,
-        mongo: {
-          appName: 'mqemitter-mongodb-test'
-        }
-      })
+      await new Promise((resolve) => {
+        const mqEmitterMongoDB = MongoEmitter({
+          url,
+          mongo: {
+            appName: 'mqemitter-mongodb-test'
+          }
+        })
 
-      mqEmitterMongoDB.status.once('stream', function () {
-        t.equal(mqEmitterMongoDB._db.client.options.appName, 'mqemitter-mongodb-test')
-        t.ok(true, 'database name is default db name')
-        t.end()
-        mqEmitterMongoDB.close()
+        mqEmitterMongoDB.status.once('stream', function () {
+          t.assert.equal(mqEmitterMongoDB._db.client.options.appName, 'mqemitter-mongodb-test')
+          t.assert.ok(true, 'database name is default db name')
+          mqEmitterMongoDB.close()
+          resolve()
+        })
       })
     })
 
     // keep this test as last
-    test('doesn\'t throw db errors', function (t) {
+    test('doesn\'t throw db errors', async function (t) {
       t.plan(1)
 
-      client.close(true)
+      await new Promise((resolve) => {
+        client.close(true)
 
-      const mqEmitterMongoDB = MongoEmitter({
-        url,
-        db
-      })
+        const mqEmitterMongoDB = MongoEmitter({
+          url,
+          db
+        })
 
-      mqEmitterMongoDB.status.on('error', function (err) {
-        t.ok(true, 'error event emitted')
-        if (err.message !== 'Client must be connected before running operations') {
-          t.fail('throws error')
-        }
-        mqEmitterMongoDB.close()
+        mqEmitterMongoDB.status.on('error', function (err) {
+          t.assert.ok(true, 'error event emitted')
+          if (err.message !== 'Client must be connected before running operations') {
+            t.assert.fail('throws error')
+          }
+          mqEmitterMongoDB.close()
+          resolve()
+        })
       })
     })
   })
