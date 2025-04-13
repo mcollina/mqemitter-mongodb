@@ -6,9 +6,7 @@ const MongoClient = mongodb.MongoClient
 const ObjectId = mongodb.ObjectId
 const inherits = require('inherits')
 const MQEmitter = require('mqemitter')
-const through = require('through2')
-const pump = require('pump')
-const nextTick = process.nextTick
+const { pipeline, Transform } = require('stream')
 const EE = require('events').EventEmitter
 
 function toStream (op) {
@@ -61,6 +59,34 @@ async function checkCollection (ctx, next) {
     ctx._collection = ctx._db.collection(collectionName)
   }
   process.nextTick(next)
+}
+
+// Create a Transform stream to process each object
+function buildTransform (ctx, failures, oldEmit) {
+  return new Transform({
+    objectMode: true,
+    transform (obj, enc, cb) {
+      if (ctx.closed) {
+        return cb() // Stop processing if closed
+      }
+
+      // convert mongo binary to buffer
+      if (obj.payload && obj.payload._bsontype) {
+        obj.payload = obj.payload.read(0, obj.payload.length())
+      }
+
+      ctx._started = true
+      failures = 0
+      ctx._lastObj = obj
+
+      oldEmit.call(ctx, obj, cb)
+
+      if (ctx._waiting.has(obj._stringId)) {
+        process.nextTick(ctx._waiting.get(obj._stringId))
+        ctx._waiting.delete(obj._stringId)
+      }
+    }
+  })
 }
 
 function MQEmitterMongoDB (opts) {
@@ -141,47 +167,31 @@ function MQEmitterMongoDB (opts) {
   async function start () {
     if (that.closed) { return }
 
-    that._stream = toStream(await that._collection.find({ _id: { $gt: that._lastObj._id } }, {
-      tailable: true,
-      timeout: false,
-      awaitData: true
-    }))
+    try {
+      that._stream = toStream(await that._collection.find({ _id: { $gt: that._lastObj._id } }, {
+        tailable: true,
+        timeout: false,
+        awaitData: true
+      }))
 
-    pump(that._stream, through.obj(process), function () {
-      if (that.closed) {
-        return
-      }
+      const processStream = buildTransform(that, failures, oldEmit)
+      that._stream = pipeline(that._stream, processStream, function () {
+        if (that.closed) {
+          return
+        }
 
-      if (that._started && ++failures === 10) {
-        that.status.emit('error', new Error('Lost connection to MongoDB'))
-      }
-      setTimeout(start, 100)
-    })
+        if (that._started && ++failures === 10) {
+          that.status.emit('error', new Error('Lost connection to MongoDB'))
+        }
+        setTimeout(start, 100)
+      })
 
-    that._hasStream = true
-    that.status.emit('stream')
-    that._bulkInsert()
-
-    function process (obj, enc, cb) {
-      if (that.closed) {
-        return cb()
-      }
-
-      // convert mongo binary to buffer
-      if (obj.payload && obj.payload._bsontype) {
-        obj.payload = obj.payload.read(0, obj.payload.length())
-      }
-
-      that._started = true
-      failures = 0
-      that._lastObj = obj
-
-      oldEmit.call(that, obj, cb)
-
-      if (that._waiting.has(obj._stringId)) {
-        nextTick(that._waiting.get(obj._stringId))
-        that._waiting.delete(obj._stringId)
-      }
+      that._hasStream = true
+      that.status.emit('stream')
+      that._bulkInsert()
+    } catch (error) {
+      that._hasStream = false
+      that.status.emit('error', error)
     }
   }
 
@@ -257,8 +267,12 @@ MQEmitterMongoDB.prototype.close = function (cb) {
     if (that._opts.db) {
       cb()
     } else {
-      await that._client.close()
-      process.nextTick(cb)
+      that._client.close().then(() => {
+        process.nextTick(cb)
+      }).catch(err => {
+        that.status.emit('error', err)
+        process.nextTick(cb, err)
+      })
     }
   })
 

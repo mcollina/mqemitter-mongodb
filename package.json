@@ -28,8 +28,6 @@
   "dependencies": {
     "inherits": "^2.0.4",
     "mongodb": "^6.15.0",
-    "mqemitter": "^7.0.0",
-    "pump": "^3.0.2",
-    "through2": "^4.0.2"
+    "mqemitter": "^7.0.0"
   }
 }
