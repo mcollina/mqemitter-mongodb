@@ -9,10 +9,6 @@ const MQEmitter = require('mqemitter')
 const { pipeline, Transform } = require('stream')
 const EE = require('events').EventEmitter
 
-function toStream (op) {
-  return op.stream ? op.stream() : op
-}
-
 function newId () {
   return ObjectId.createFromTime(Date.now())
 }
@@ -168,11 +164,12 @@ function MQEmitterMongoDB (opts) {
     if (that.closed) { return }
 
     try {
-      that._stream = toStream(await that._collection.find({ _id: { $gt: that._lastObj._id } }, {
+      const cursor = await that._collection.find({ _id: { $gt: that._lastObj._id } }, {
         tailable: true,
         timeout: false,
         awaitData: true
-      }))
+      })
+      that._stream = cursor.stream()
 
       const processStream = buildTransform(that, failures, oldEmit)
       that._stream = pipeline(that._stream, processStream, function () {
