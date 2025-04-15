@@ -26,7 +26,6 @@
     "neostandard": "^0.12.1"
   },
   "dependencies": {
-    "inherits": "^2.0.4",
     "mongodb": "^6.15.0",
     "mqemitter": "^7.0.0"
   }
