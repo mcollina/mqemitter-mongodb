@@ -1,4 +1,4 @@
-mqemitter-mongodb&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/mqemitter-mongodb.png)](https://travis-ci.org/mcollina/mqemitter-mongodb)
+(mqemitter-mongodb&nbsp;&nbsp;![ci](https://github.com/mcollina/mqemitter-mongodb/workflows/ci/badge.svg)
 =================
 
 MongoDB powered [MQEmitter](http://github.com/mcollina/mqemitter).
@@ -12,18 +12,18 @@ Install
 -------
 
 ```bash
-$ npm install mqemitter-mongodb --save
+$ npm install mqemitter-mongodb
 ```
 
 Example
 -------
 
 ```js
-var mongodb = require('mqemitter-mongodb')
-var mq = mongodb({
+const mongodb = require('mqemitter-mongodb')
+const mq = mongodb({
   url: 'mongodb://127.0.0.1/mqemitter?auto_reconnect'
 })
-var msg  = {
+const msg  = {
   topic: 'hello world',
   payload: 'or any other fields'
 }

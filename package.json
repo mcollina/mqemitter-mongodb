@@ -4,8 +4,11 @@
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
-    "test": "standard && node test.js | faucet",
-    "mongo": "docker run -p 27017:27017 mongo:4"
+    "unit": "node --test test.js",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "npm run lint && npm run unit",
+    "mongodb": "docker run -d --rm --name mongodb -p 27017:27017 mongo:8"
   },
   "pre-commit": "test",
   "repository": {
@@ -15,20 +18,15 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=4.0.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
-    "faucet": "0.0.1",
-    "mongo-clean": "^2.0.0",
-    "pre-commit": "^1.0.7",
-    "standard": "^16.0.4",
-    "tape": "^5.5.2"
+    "@fastify/pre-commit": "^2.2.0",
+    "eslint": "^9.24.0",
+    "neostandard": "^0.12.1"
   },
   "dependencies": {
-    "inherits": "^2.0.3",
-    "mongodb": "^4.5.0",
-    "mqemitter": "^4.4.0",
-    "pump": "^3.0.0",
-    "through2": "^4.0.2"
+    "mongodb": "^6.15.0",
+    "mqemitter": "^7.0.0"
   }
 }

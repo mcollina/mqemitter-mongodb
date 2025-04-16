@@ -1,3 +1,5 @@
+name: ci
+
 on: 
   push:
     branches:
@@ -9,19 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [12.x, 14.x, 16.x]
+        node-version: [20,22]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Use Node.js
-        uses: actions/setup-node@v2.4.1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Install mongo
         run: | 
-          docker run -d -p 27017:27017 mongo:latest mongod
+          npm run mongodb
       - name: Install
         run: |
           npm install
