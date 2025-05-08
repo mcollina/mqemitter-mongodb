@@ -11,9 +11,6 @@ const dbname = 'mqemitter-test'
 const collectionName = 'pubsub'
 const url = 'mongodb://127.0.0.1/' + dbname
 
-function newId () {
-  return ObjectId.createFromTime(Date.now())
-}
 async function clean (db, cb) {
   const collections = await db.listCollections({ name: collectionName }).toArray()
   if (collections.length > 0) {
@@ -74,7 +71,7 @@ connectClient(url, { w: 1 }, function (err, client) {
       t.plan(3)
 
       let started = 0
-      const lastId = newId()
+      const lastId = new ObjectId()
 
       function startInstance (cb) {
         const mqEmitterMongoDB = MongoEmitter({
