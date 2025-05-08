@@ -1,4 +1,4 @@
-(mqemitter-mongodb&nbsp;&nbsp;![ci](https://github.com/mcollina/mqemitter-mongodb/workflows/ci/badge.svg)
+mqemitter-mongodb&nbsp;&nbsp;![ci](https://github.com/mcollina/mqemitter-mongodb/workflows/ci/badge.svg)
 =================
 
 MongoDB powered [MQEmitter](http://github.com/mcollina/mqemitter).
