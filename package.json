@@ -4,7 +4,7 @@
   "description": "MongoDB based MQEmitter",
   "main": "mqemitter-mongodb.js",
   "scripts": {
-    "unit": "node --test test.js",
+    "unit": "node --test --test-timeout=180000 test.js",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "npm run lint && npm run unit",
@@ -22,11 +22,11 @@
   },
   "devDependencies": {
     "@fastify/pre-commit": "^2.2.0",
-    "eslint": "^9.24.0",
+    "eslint": "^9.26.0",
     "neostandard": "^0.12.1"
   },
   "dependencies": {
-    "mongodb": "^6.15.0",
+    "mongodb": "^6.16.0",
     "mqemitter": "^7.0.0"
   }
 }

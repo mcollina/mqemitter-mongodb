@@ -9,10 +9,6 @@ const MQEmitter = require('mqemitter')
 const { pipeline, Transform } = require('stream')
 const EE = require('events').EventEmitter
 
-function newId () {
-  return ObjectId.createFromTime(Date.now())
-}
-
 function connectClient (url, opts, cb) {
   MongoClient.connect(url, opts)
     .then(client => {
@@ -148,7 +144,7 @@ function MQEmitterMongoDB (opts) {
         .limit(1)
         .toArray()
       const doc = results[0]
-      that._lastObj = doc || { _id: newId() }
+      that._lastObj = doc || { _id: new ObjectId() }
 
       if (!that._lastObj._stringId) {
         that._lastObj._stringId = that._lastObj._id.toString()
