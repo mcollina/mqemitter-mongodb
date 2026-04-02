@@ -133,7 +133,7 @@ function MQEmitterMongoDB (opts) {
 
   this._waiting = new Map()
   this._queue = []
-  this._executingBulk = false
+  this._executingBulk = null
   let failures = 0
 
   async function setLast () {
@@ -193,9 +193,8 @@ function MQEmitterMongoDB (opts) {
 
 inherits(MQEmitterMongoDB, MQEmitter)
 
-MQEmitterMongoDB.prototype._bulkInsert = async function () {
+MQEmitterMongoDB.prototype._bulkInsert = function () {
   if (!this._executingBulk && this._queue.length > 0) {
-    this._executingBulk = true
     const operations = []
 
     while (this._queue.length) {
@@ -203,9 +202,14 @@ MQEmitterMongoDB.prototype._bulkInsert = async function () {
       operations.push({ insertOne: p.obj })
     }
 
-    await this._collection.bulkWrite(operations)
-    this._executingBulk = false
-    this._bulkInsert()
+    this._executingBulk = this._collection.bulkWrite(operations)
+      .catch((err) => {
+        if (!this.closed) throw err
+      })
+      .finally(() => {
+        this._executingBulk = null
+        this._bulkInsert()
+      })
   }
 }
 
@@ -256,17 +260,22 @@ MQEmitterMongoDB.prototype.close = function (cb) {
   this.closed = true
 
   const that = this
-  MQEmitter.prototype.close.call(this, async function () {
-    if (that._opts.db) {
-      cb()
-    } else {
-      that._client.close().then(() => {
-        process.nextTick(cb)
-      }).catch(err => {
-        that.status.emit('error', err)
-        process.nextTick(cb, err)
-      })
-    }
+
+  // wait for in-flight bulk insert to finish before closing client
+  const pending = this._executingBulk || Promise.resolve()
+  pending.then(function () {
+    MQEmitter.prototype.close.call(that, async function () {
+      if (that._opts.db) {
+        cb()
+      } else {
+        that._client.close().then(() => {
+          process.nextTick(cb)
+        }).catch(err => {
+          that.status.emit('error', err)
+          process.nextTick(cb, err)
+        })
+      }
+    })
   })
 
   return this

@@ -136,6 +136,34 @@ connectClient(url, { w: 1 }, function (err, client) {
       })
     })
 
+    test('_bulkInsert handles errors when emitter is closed', async function (t) {
+      t.plan(1)
+
+      const mqEmitterMongoDB = MongoEmitter({ url })
+
+      await new Promise((resolve) => mqEmitterMongoDB.status.once('stream', resolve))
+
+      // replace bulkWrite with one that always rejects, simulating
+      // a write that fails because close() killed the client session
+      mqEmitterMongoDB._collection.bulkWrite = function () {
+        return Promise.reject(new Error('Cannot use a session that has ended'))
+      }
+
+      // mark as closed before triggering _bulkInsert,
+      // simulating a write that fails during shutdown
+      mqEmitterMongoDB.closed = true
+      mqEmitterMongoDB._queue.push({ obj: { topic: 'close/test', payload: 'test' } })
+      mqEmitterMongoDB._bulkInsert()
+
+      // if the rejection is unhandled, node:test fails this test
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      t.assert.ok(true, 'no unhandled rejection from _bulkInsert when closed')
+
+      // clean up
+      mqEmitterMongoDB.closed = false
+      await new Promise((resolve) => mqEmitterMongoDB.close(resolve))
+    })
+
     // keep this test as last
     test('doesn\'t throw db errors', async function (t) {
       t.plan(1)
